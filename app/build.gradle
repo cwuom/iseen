@@ -1,0 +1,75 @@
+plugins {
+    id 'com.android.application'
+}
+def dialogx_version = "0.0.49"
+
+android {
+    namespace 'com.cwuom.iseen'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.cwuom.iseen"
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName "β"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures {
+        viewBinding true
+        dataBinding true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildToolsVersion '34.0.0'
+}
+
+dependencies {
+    constraints {
+        add("implementation", "org.jetbrains.kotlin:kotlin-stdlib-jdk7") {
+            version {
+                require("1.8.0")
+            }
+        }
+        add("implementation", "org.jetbrains.kotlin:kotlin-stdlib-jdk8") {
+            version {
+                require("1.8.0")
+            }
+        }
+    }
+    
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    // room
+    def room_version = "2.5.2"
+    //noinspection GradleDependency
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+
+    // DialogX
+    implementation "com.kongzue.dialogx:DialogX:${dialogx_version}"
+
+    // material you
+    implementation 'com.google.android.material:material:1.12.0-alpha03'
+
+    // okhttp3
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+}

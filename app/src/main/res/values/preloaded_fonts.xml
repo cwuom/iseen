@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="preloaded_fonts" translatable="false">
+        <item>@font/amita_bold</item>
+        <item>@font/arbutus_slab</item>
+        <item>@font/bungee</item>
+        <item>@font/inder</item>
+        <item>@font/palanquin_dark_bold</item>
+        <item>@font/voces</item>
+    </array>
+</resources>

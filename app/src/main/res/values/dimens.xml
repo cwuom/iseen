@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="view_margin_small_spacing">8dp</dimen>
+    <dimen name="view_margin_normal_spacing">16dp</dimen>
+    <dimen name="view_margin_large_spacing">24dp</dimen>
+    <dimen name="font_small_size">12sp</dimen>
+    <dimen name="font_normal_size">16sp</dimen>
+    <dimen name="font_large_size">20sp</dimen>
+    <dimen name="font_super_large_size">24sp</dimen>
+    <dimen name="font_pro_max_plus_size">35sp</dimen>
+</resources>
