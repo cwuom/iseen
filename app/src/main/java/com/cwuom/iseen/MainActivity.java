@@ -172,6 +172,26 @@ public class MainActivity extends AppCompatActivity {
                     .show();
 
         }
+        if (!sharedPreferences.getBoolean("is_read", false)){
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("声明")
+                    .setMessage("iseen 软件免责声明\n" +
+                            "\n" +
+                            "在使用 iseen 软件（以下简称“软件”）之前，请仔细阅读并理解以下条款：\n" +
+                            "\n" +
+                            "API使用: 软件调用了第三方API，这些API的使用仅限于软件内部，与API的作者无关。我们对这些API的任何问题或故障不承担任何责任。\n" +
+                            "用户责任: 使用软件的用户需对自己的行为负责，包括但不限于数据输入、输出和操作。软件作者不对因使用软件导致的任何直接或间接损失承担责任。\n" +
+                            "知识产权: 所有通过此软件获取的信息和内容都受到版权、商标和其他相关法律的保护。未经授权的复制、分发或使用可能违反法律。\n" +
+                            "免责声明: 我们尽力确保软件的正常运作，但无法保证其永久可用或完全无误。因此，您应对任何由于软件中断、延迟、错误、故障或其他问题导致的损失承担责任。\n" +
+                            "隐私政策: 我们尊重用户的隐私权，不会收集、使用或披露您的个人信息，除非法律要求或经您明确同意。\n" +
+                            "\n" +
+                            "请注意，本免责声明可能随时更新，请定期查看最新版本。通过使用 iseen 软件，您同意遵守上述条款和条件。")
+                    .setNegativeButton("关闭", null)
+                    .setNeutralButton("不再提示", (dialog, which) -> editor.putBoolean("is_read", true).apply())
+                    .show();
+
+        }
+
 
 
         Context context = getApplicationContext();
