@@ -25,14 +25,11 @@
     <string name="manage_cards_history">管理您之前生成过的卡片</string>
     <string name="item_card_title">监听信息</string>
     <string name="get">Get</string>
-    <string name="placeholder_card_title">card_title</string>
-    <string name="placeholder_card_sub">card_sub</string>
-    <string name="placeholder_time">time</string>
     <string name="delete">Delete</string>
     <string name="more_actions">More Actions</string>
     <string name="back">返回</string>
     <string name="del_all_history_on_server">在云端清空所有监听记录(长按配置)</string>
-    <string name="layout_card_history_title">批量操作</string>
+    <string name="batch_operation">批量操作</string>
     <string name="del_all_history_on_local">删除所有本地卡片历史</string>
     <string name="no_card_info"><![CDATA[这里貌似只有我一个人捏..( > <.)]]></string>
     <string name="number_of_cards">共%s条历史记录</string>

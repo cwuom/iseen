@@ -82,49 +82,71 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+/*
+ * This software is provided for educational purposes only and should not be used for commercial or illegal activities.
+ * Please respect the original author's work by retaining their information intact.
+ * If you make modifications to this code, you can repackage it accordingly.
+ *
+ * Original Author: cwuom
+ * Date: 2024.3.1
+ *
+ * Instructions:
+ * 1. Make necessary modifications.
+ * 2. Rebuild the app.
+ * 3. Retain this header.
+ *
+ * Thank you!
+ */
+
+/**
+ * @author cwuom
+ * 下列源码支持变动后重新打包，在变动不大的情况下，请尽量保留作者的信息！
+ * 请勿用于商业用途和非法用途。
+ * */
+
 public class MainActivity extends AppCompatActivity {
-    private ActivityMainBinding binding;
-    private CardDao cardDao;
-    private final int HANDLER_MESSAGE_SHOW_CARD_DATA = 1;
-    private final int HANDLER_MESSAGE_TIMEOUT = -1;
-    private final int HANDLER_MESSAGE_CONNECTION_ERR = -2;
-    private final int HANDLER_MESSAGE_SERVER_REPLY = 2;
-    private final int HANDLER_MESSAGE_THREAD_STOP = 3;
-    private String card_data = "";
-    private Snackbar snackbar;
+    private ActivityMainBinding binding;  // 视图绑定
+    private CardDao cardDao;  // 与数据库进行交互
+    private final int HANDLER_MESSAGE_SHOW_CARD_DATA = 1;  // 当签名接口请求完成后，弹出卡片代码
+    private final int HANDLER_MESSAGE_TIMEOUT = -1;  // 监听超时时，后台弹出通知
+    private final int HANDLER_MESSAGE_CONNECTION_ERR = -2;  // 监听连接错误时，后台弹出通知
+    private final int HANDLER_MESSAGE_SERVER_REPLY = 2;  // 2FA代码发送到服务器且服务器回应时，弹出反馈窗口
+    private final int HANDLER_MESSAGE_THREAD_STOP = 3;  // 监听线程被终止时，弹出提示窗口
+    private String card_data = "";  // 卡片代码
 
-    private String server;
-    private String title;
-    private String subtitle;
-    private String yx;
-    private String id;
-    private String php_filename;
-    private String data_dir;
-    private String req_url;
-    private String note;
-    private Boolean switch_followID = Boolean.TRUE;
-    private Boolean switch_hidePhp = Boolean.TRUE;
-    private Boolean switch_hide_edit = Boolean.FALSE;
-    private Boolean switch_show_background = Boolean.TRUE;
-    private SharedPreferences sharedPreferences;
-    private SharedPreferences.Editor editor;
-    private String hidePath;
-    private String res_2fa_callback;
-    private NotificationManager notificationManager;
-    private String channelId;
-    int nID = 0;
-    private Boolean isDismiss = true;
-    private final ArrayList<Thread> listener_threads = new ArrayList<>();
-    private final ArrayList<String> listener_url = new ArrayList<>();
-    private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;
-    private String image_uri;
+    private String server;  // 服务器地址
+    private String title;  // 卡片标题
+    private String subtitle;  // 卡片副标题
+    private String yx;  // 卡片外显
+    private String id;  // 卡片标识
+    private String php_filename;  // PHP文件名/地址
+    private String data_dir;  // 监听数据存放目录
+    private String req_url;  // 图片签名地址
+    private String note;  // 卡片备注
+    private Boolean switch_followID = Boolean.TRUE;  // 子标题是否跟随标识
+    private Boolean switch_hidePhp = Boolean.TRUE;  // 是否隐藏php地址（可以把它隐藏成沙雕图）
+    private Boolean switch_hide_dangerous_input = Boolean.FALSE;  // 是否隐藏关键输入信息
+    private Boolean switch_show_background = Boolean.TRUE;  // 是否显示背景图片
+    private SharedPreferences sharedPreferences;  // SharedPreferences，存放配置
+    private SharedPreferences.Editor editor;  // 编辑存放的配置
+    private String hidePath;  // 隐匿路径
+    private String res_2fa_callback;  // 输入2FA代码后，服务器响应的信息
+    private NotificationManager notificationManager;  // 通知管理器
+    private String channelId;  // 渠道ID
+    int nID = 0;  // 通知ID
+    private Boolean isDismiss = true;  // 防止重复弹出dialog窗口
+    private final ArrayList<Thread> listener_threads = new ArrayList<>();  // 监听器线程列表
+    private final ArrayList<String> listener_url = new ArrayList<>();  // 监听地址列表
+    private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;  // 图片选择器 (旧android也许不兼容，Android13支持)
+    private String image_uri;  // 背景图uri地址
+    private String API = "http://api.mrgnb.cn/API/qq_ark37.php?url=";
 
-    private final Handler handler = new CustomHandler(this);
+    private final Handler handler = new CustomHandler(this);  // 创建handler
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        binding = ActivityMainBinding.inflate(getLayoutInflater());  // 布局绑定
         setContentView(binding.getRoot());
 
         initMethod();
@@ -150,12 +172,14 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
+        // 全局崩溃拦截(懒得用try盖住了)
         NeverCrash.getInstance()
                 .setDebugMode(BuildConfig.DEBUG)
                 .setMainCrashHandler((t, e) -> UtilMethod.showDialog("发生了意想不到的问题..", "已尝试在主线程拦截崩溃，您需要将此截图反馈给开发者。\n报错详情: "+e.toString(), this))
                 .setUncaughtCrashHandler((t, e) -> UtilMethod.showDialog("发生了意想不到的问题..", "已尝试在子线程拦截崩溃，您需要将此截图反馈给开发者。\n报错详情: "+e.toString(), this))
                 .register(this.getApplication());
 
+        // 判断通知权限状态，若无权限则弹出窗口帮助用户授权
         if (!NotificationUtil.isNotifyEnabled(this) && sharedPreferences.getBoolean("notify_permission_remind", true)){
             new MaterialAlertDialogBuilder(this)
                     .setTitle("程序功能受限")
@@ -172,6 +196,8 @@ public class MainActivity extends AppCompatActivity {
                     .show();
 
         }
+
+        // 弹出免责声明
         if (!sharedPreferences.getBoolean("is_read", false)){
             new MaterialAlertDialogBuilder(this)
                     .setTitle("声明")
@@ -192,8 +218,7 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-
-
+        // 创建通知渠道
         Context context = getApplicationContext();
         channelId = "卡片监听";
         notificationManager = (NotificationManager)context.getSystemService(NOTIFICATION_SERVICE);
@@ -203,30 +228,34 @@ public class MainActivity extends AppCompatActivity {
         InitCardDataBase initCardDataBase = UtilMethod.getInstance(this);
         cardDao = initCardDataBase.cardDao();
 
+
+        // 设置随机卡片标识
         binding.btnRandom.setOnClickListener(v -> {
             String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
             binding.id.setText(uuid);
         });
 
+        // 签名并生成卡片
         binding.btnGenerate.setOnClickListener(v -> {
             updateInputInfo();
             String url = server+php_filename+"?id="+id+".png";
             if (binding.switchHidePhp.isChecked()){
                 url = server+hidePath+"/"+id+".png";
             }
-            req_url = "http://api.mrgnb.cn/API/qq_ark37.php?url="+url+"&title="+title+"&subtitle="+subtitle+"&yx="+yx;
+            req_url = API+url+"&title="+title+"&subtitle="+subtitle+"&yx="+yx;
             String cardListenerUrl = server+data_dir+"/"+id+".png.txt";
-            if (binding.switchHidePhp.isChecked()){
+            if (binding.switchHidePhp.isChecked()){  // 开启了隐匿模式，查询地址会发生变化
                 cardListenerUrl = server+data_dir+"/"+id+".txt";
             }
-            if (!JudgmentListenerRepetition(cardListenerUrl)){
+            if (!JudgmentListenerRepetition(cardListenerUrl)){ // 判断是否重复
                 ShowSnackbar("正在提交数据并签名，请稍等。");
-                getCardData(req_url);
+                getCardData(req_url);  // 向API发送签名请求
             } else {
                 ShowSnackbar("相同标识的卡片已经存在，请更换标识。");
             }
         });
 
+        // 保存卡片配置
         binding.btnSave.setOnClickListener(v -> {
             updateInputInfo();
             editor.putString("server", server);
@@ -243,11 +272,13 @@ public class MainActivity extends AppCompatActivity {
             ShowSnackbar("配置已保存！");
         });
 
+        // 恢复卡片配置
         binding.btnRestore.setOnClickListener(v -> {
             configRestore();
             ShowSnackbar("配置已恢复！");
         });
 
+        // 监听卡片标识的变化
         binding.id.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -263,12 +294,14 @@ public class MainActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {}
         });
 
+        // 复制查询地址
         binding.btnGetUrl.setOnClickListener(v -> {
             updateInputInfo();
             copyToClipboard(server+data_dir+"/"+id+".png.txt");
             ShowSnackbar("已将查询链接放入剪贴板。");
         });
 
+        // 平台跳转
         binding.devCard.setOnClickListener(v -> new MaterialAlertDialogBuilder(MainActivity.this)
                 .setTitle("对此有点兴趣吗？")
                 .setMessage("点击下方按钮，跳转对应平台。")
@@ -283,6 +316,7 @@ public class MainActivity extends AppCompatActivity {
                 .setNeutralButton("关闭", null)
                 .show());
 
+        // 长按跳转到B站
         binding.devCard.setOnLongClickListener(v -> {
             Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://space.bilibili.com/473400804"));
             startActivity(browserIntent);
@@ -295,9 +329,9 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("好！", null)
                 .show());
 
-        binding.warningCard.setOnLongClickListener(v -> true);
+        binding.warningCard.setOnLongClickListener(v -> true);  // 没什么用的监听
 
-        binding.btnHistory.setOnClickListener(v -> showHistoryManager());
+        binding.btnHistory.setOnClickListener(v -> showHistoryManager());  // 弹出历史管理
 
         binding.switchFollowId.setOnCheckedChangeListener((buttonView, isChecked) -> {
             editor.putBoolean("switch_followID", isChecked);
@@ -333,7 +367,7 @@ public class MainActivity extends AppCompatActivity {
 
         binding.switchHideEdit.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
-                hideDangerInput();
+                hideDangerousInput();
                 ShowSnackbar("关键输入数据已被隐去");
             } else {
                 binding.server.setTransformationMethod(null);
@@ -380,6 +414,12 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 将临时uri转换为永久uri
+     * @param uri 临时uri地址
+     * @param context 上下文
+     * @return 永久uri地址
+     */
     public static URI uriToUri(Uri uri, Context context) {
         File file = null;
         if (uri == null) return file.toURI();
@@ -410,12 +450,18 @@ public class MainActivity extends AppCompatActivity {
         return file.toURI();
     }
 
-    void hideDangerInput(){
+    /**
+     * 隐藏关键输入信息
+     */
+    void hideDangerousInput(){
         binding.server.setTransformationMethod(new PasswordTransformationMethod());
         binding.php.setTransformationMethod(new PasswordTransformationMethod());
         binding.dataDirectory.setTransformationMethod(new PasswordTransformationMethod());
     }
 
+    /**
+     * 显示卡片历史管理器
+     */
     void showHistoryManager(){
         FullScreenDialog.show(new OnBindView<FullScreenDialog>(R.layout.layout_history) {
             @Override
@@ -511,6 +557,10 @@ public class MainActivity extends AppCompatActivity {
         }).show();
     }
 
+    /**
+     * 列表点击事件处理
+     * BottomMenu.show(new String[]{"复制卡片代码", "跳转到监听地址", "后台自动监听"})
+     */
     void doAction(int action, EntityCard entityCard, EntityCardHistory entityCardHistory, int pos, RecyclerView rv_card_list){
         switch (action){
             case 0: // 复制卡片代码
@@ -560,6 +610,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 处理卡片监听事件
+     * @param card 卡片实体类
+     * */
     void cardListener(EntityCard card){
         Thread thread = new Thread(() -> {
             final String[] temp = {""};
@@ -603,10 +657,17 @@ public class MainActivity extends AppCompatActivity {
         thread.start();
     }
 
+    /**
+     * 监听间隔设置
+     * （防isInterrupted自动改变）
+     */
     private void throwInMethod() throws InterruptedException {
         Thread.sleep(30000);
     }
-    
+
+    /**
+     * 实体卡片类列表转换为卡片历史列表
+     */
     private ArrayList<EntityCardHistory> entityCardToEntityCardHistory(List<EntityCard> list) {
         ArrayList<EntityCardHistory> cards = new ArrayList<>();
         for (EntityCard card : list){
@@ -640,6 +701,10 @@ public class MainActivity extends AppCompatActivity {
         return cards;
     }
 
+    /**
+     * 获取本地卡片历史记录
+     @return 卡片历史列表
+     */
     private List<EntityCard> getLocalCardHistory(){
         List<EntityCard> allCard = cardDao.getAllCard();
         if (allCard.size() > 0){
@@ -648,6 +713,11 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
+    /**
+     判断卡片监听地址是否重复
+     @param url
+     @return 是否重复
+     */
     boolean JudgmentListenerRepetition(String url){
         List<EntityCard> allCard = cardDao.getAllCard();
         for (EntityCard card : allCard){
@@ -657,6 +727,11 @@ public class MainActivity extends AppCompatActivity {
         }
         return false;
     }
+
+    /**
+     获取卡片代码，需先请求API
+     * @param req_url
+     */
     void getCardData(String req_url){
         new Thread(() -> {
             try {
@@ -676,6 +751,9 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
+    /**
+     读取EditText等数据赋值到全局变量中
+     */
     void updateInputInfo(){
         server = Objects.requireNonNull(binding.server.getText()).toString();
         title = Objects.requireNonNull(binding.title.getText()).toString();
@@ -691,6 +769,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     复原先前保存的配置
+     */
     void configRestore(){
         read_config();
         binding.server.setText(server);
@@ -708,9 +789,9 @@ public class MainActivity extends AppCompatActivity {
         if (switch_hidePhp){
             binding.textFieldHidePath.setVisibility(View.VISIBLE);
         }
-        binding.switchHideEdit.setChecked(switch_hide_edit);
-        if (switch_hide_edit){
-            hideDangerInput();
+        binding.switchHideEdit.setChecked(switch_hide_dangerous_input);
+        if (switch_hide_dangerous_input){
+            hideDangerousInput();
         }
 
         if (image_uri != null && !image_uri.equals("")){
@@ -722,6 +803,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     读取以往保存的数据并赋值到全局变量中
+     */
     void read_config(){
         server = sharedPreferences.getString("server","");
         title = sharedPreferences.getString("title","");
@@ -734,14 +818,19 @@ public class MainActivity extends AppCompatActivity {
         hidePath =  sharedPreferences.getString("hidePath","");
         switch_followID = sharedPreferences.getBoolean("switch_followID",true);
         switch_hidePhp = sharedPreferences.getBoolean("switch_hidePhp",false);
-        switch_hide_edit = sharedPreferences.getBoolean("switch_hide_edit",false);
+        switch_hide_dangerous_input = sharedPreferences.getBoolean("switch_hide_edit",false);
         switch_show_background = sharedPreferences.getBoolean("showBackground",true);
         image_uri = sharedPreferences.getString("image_uri",null);
     }
 
 
+    /**
+     展示Snackbar
+     @param info 需要展示的信息
+     */
     @SuppressLint("RestrictedApi")
-    void ShowSnackbar(String info1){  // 注: 无障碍模式会导致Snackbar无动画
+    void ShowSnackbar(String info){  // 注: 无障碍模式会导致Snackbar无动画
+        Snackbar snackbar;
         View rootView = MainActivity.this.getWindow().getDecorView();
         View coordinatorLayout = rootView.findViewById(android.R.id.content);
         snackbar = Snackbar.make(coordinatorLayout, "", com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_LONG);
@@ -753,7 +842,7 @@ public class MainActivity extends AppCompatActivity {
         snackbarView.setLayoutParams(fl);
         @SuppressLint("InflateParams") View inflate = LayoutInflater.from(snackbar.getView().getContext()).inflate(R.layout.layout_snackbar_view, null);
         @SuppressLint({"MissingInflatedId", "LocalSuppress"}) TextView text = inflate.findViewById(R.id.tv_snackbar);
-        text.setText(info1);
+        text.setText(info);
         @SuppressLint({"MissingInflatedId", "LocalSuppress"}) TextView text2 = inflate.findViewById(R.id.tv_act);
         text2.setText("好");
         text2.setOnClickListener(v -> snackbar.dismiss());
@@ -761,20 +850,31 @@ public class MainActivity extends AppCompatActivity {
         snackbar.show();
     }
 
+    /**
+     * 复制内容到剪贴板
+     * @param text 需要复制的内容
+     */
     void copyToClipboard(String text) {
         ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData mClipData = ClipData.newPlainText("Label", text);
         cm.setPrimaryClip(mClipData);
     }
 
+    /**
+     * 获取当前时间
+     * @return yyyy-MM-dd HH:mm:ss
+     */
     String getDate(){
         @SuppressLint("SimpleDateFormat") SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return df.format(new Date());
     }
 
+    /**
+     使用Handler方便在子线程更新UI
+     */
     @SuppressLint("HandlerLeak")
     private class CustomHandler extends Handler {
-        //弱引用持有HandlerActivity , GC 回收时会被回收掉
+        // 弱引用持有HandlerActivity , GC 回收时会被回收掉
         private final WeakReference<MainActivity> weakReference;
         public CustomHandler(MainActivity activity) {
             this.weakReference = new WeakReference<>(activity);
@@ -818,38 +918,53 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    void push_listen_res(String title, String subtitle, int type){
-        if (type == 0){
-            nID += 1;
-            Notification notification = new Notification.Builder(MainActivity.this,channelId)
-                    .setContentTitle(title)
-                    .setContentText(subtitle)
-                    .setWhen(System.currentTimeMillis())
-                    .setSmallIcon(R.drawable.iseen)
-                    .build();
 
-            notificationManager.notify(nID, notification);
-        } else if (type == 1) {
-            Notification notification = new Notification.Builder(MainActivity.this,channelId)
-                    .setContentTitle(title)
-                    .setContentText(subtitle)
-                    .setWhen(System.currentTimeMillis())
-                    .setSmallIcon(R.drawable.iseen)
-                    .build();
+     /**
+      * 此方法用于向用户推送通知(当探针监听器内容或状态发生更改时)
+      * 取决于通知的类型。
+      * @param title 通知标题
+      * @param subtitle 通知副标题
+      * @param type 通知类型 (0: 监听器内容发生改变，1/2:监听器连接超时/无法返回正确数据)
+      */
+     void push_listen_res(String title, String subtitle, int type) {
+         Notification notification;
+         // 根据通知的类型，将创建不同的通知
+         switch (type) {
+             case 0:  // 监听器内容发生改变
+                 nID += 1;
+                 notification = new Notification.Builder(MainActivity.this, channelId)
+                         .setContentTitle(title)
+                         .setContentText(subtitle)
+                         .setWhen(System.currentTimeMillis())
+                         .setSmallIcon(R.drawable.iseen)
+                         .build();
 
-            notificationManager.notify(-1, notification);
-        } else if (type == 2){
-            Notification notification = new Notification.Builder(MainActivity.this,channelId)
-                    .setContentTitle(title)
-                    .setContentText(subtitle)
-                    .setWhen(System.currentTimeMillis())
-                    .setSmallIcon(R.drawable.iseen)
-                    .build();
+                 notificationManager.notify(nID, notification);
+                 break;
+             case 1:  // 监听器连接超时
+                 notification = new Notification.Builder(MainActivity.this, channelId)
+                         .setContentTitle(title)
+                         .setContentText(subtitle)
+                         .setWhen(System.currentTimeMillis())
+                         .setSmallIcon(R.drawable.iseen)
+                         .build();
 
-            notificationManager.notify(-2, notification);
-        }
+                 notificationManager.notify(-1, notification);
+                 break;
+             case 2:  // 监听器无法返回正确数据
+                 notification = new Notification.Builder(MainActivity.this, channelId)
+                         .setContentTitle(title)
+                         .setContentText(subtitle)
+                         .setWhen(System.currentTimeMillis())
+                         .setSmallIcon(R.drawable.iseen)
+                         .build();
 
-    }
+                 notificationManager.notify(-2, notification);
+                 break;
+
+         }
+     }
+
 
 
 }

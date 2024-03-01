@@ -6,6 +6,13 @@ import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
+/**
+ * 全局崩溃拦截
+ * ----------------------
+ * @author mjSoftKing
+ * ----------------------
+ * */
+
 public class NeverCrash {
 
     private final static String TAG = NeverCrash.class.getSimpleName();

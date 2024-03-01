@@ -50,7 +50,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/layout_card_history_title"
+                    android:text="@string/batch_operation"
                     android:textSize="@dimen/font_large_size"
                     android:textStyle="bold"
                     android:layout_gravity="center"
