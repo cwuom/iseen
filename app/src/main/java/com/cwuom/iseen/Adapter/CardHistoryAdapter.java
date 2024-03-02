@@ -1,7 +1,7 @@
 package com.cwuom.iseen.Adapter;
 
 import static android.content.Context.MODE_PRIVATE;
-
+import static androidx.core.content.ContextCompat.getString;
 import static com.cwuom.iseen.Util.UtilMethod.showDialog;
 
 import android.annotation.SuppressLint;
@@ -16,6 +16,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.cwuom.iseen.Dao.CardDao;
@@ -28,6 +29,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.kongzue.dialogx.dialogs.BottomMenu;
 import com.kongzue.dialogx.interfaces.BaseDialog;
 import com.kongzue.dialogx.interfaces.OnIconChangeCallBack;
+import com.kongzue.dialogx.interfaces.OnMenuItemClickListener;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -148,9 +150,48 @@ public class CardHistoryAdapter extends RecyclerView.Adapter<CardHistoryAdapter.
                 refreshPos = holder.getLayoutPosition();
                 refreshCard();
             });
+
+            holder.tv_card_content_callback.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    int pos = holder.getLayoutPosition();
+                    EntityCard entityCard = cardDao.getCardByID(list.get(pos).getHistoryCardId());
+//                    PopupMenu popupMenu = new PopupMenu(context, v);
+//                    popupMenu.getMenuInflater().inflate(R.menu.bg_setting_menu, popupMenu.getMenu());
+//                    popupMenu.setOnMenuItemClickListener(item -> {
+//                        int id = item.getItemId();
+//                        if (id == R.id.item_use_default_background){
+//                        }
+//                        if (id == R.id.item_choose_background){
+//
+//                        }
+//                        return false;
+//                    });
+//                    popupMenu.show();
+                    BottomMenu.show(new String[]{"复制全部内容", "解析内容(复制部分内容)"})
+                            .setOnIconChangeCallBack(new OnIconChangeCallBack(true) {
+                                @Override
+                                public int getIcon(BaseDialog dialog, int index, String menuText) {
+                                    switch (menuText) {
+                                        case "复制全部内容":
+                                            return R.drawable.baseline_file_copy_24;
+                                        case "解析内容(复制部分内容)":
+                                            return R.drawable.baseline_analytics_24;
+                                    }
+                                    return 0;
+                                }
+                            })
+                            .setOnMenuItemClickListener((dialog, text, index) -> {
+                                actionListen.actionListen(-index-3, entityCard, list.get(pos), pos);
+                                return false;
+                            });
+                    return true;
+                }
+            });
         }
     }
 
+    @SuppressLint("RestrictedApi")
     private void refreshCard() {
         EntityCard entityCard = cardDao.getCardByID(list.get(refreshPos).getHistoryCardId());
 //        new MaterialAlertDialogBuilder(context)
@@ -158,13 +199,15 @@ public class CardHistoryAdapter extends RecyclerView.Adapter<CardHistoryAdapter.
 //                .setMessage("请不要重复点击，耐心等待回调。")
 //                .setPositiveButton("好", null)
 //                .show();
-        showDialog("正在等待响应！", "请不要重复点击，耐心等待回调。", context);
+//        AlertDialog dialog = showDialog("正在等待响应！", "请不要重复点击，耐心等待回调。当服务器响应时，此窗口会自动关闭！", context);
 
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
                 .url(entityCard.getCardListenerUrl())
                 .build();
         Call call = client.newCall(request);
+
+        actionListen.actionListen(-1, null, null, 0);
         call.enqueue(new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -179,6 +222,7 @@ public class CardHistoryAdapter extends RecyclerView.Adapter<CardHistoryAdapter.
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String res = Objects.requireNonNull(response.body()).string();
                 Log.e("OkHttp GET请求成功", "onFailure: "+res);
+                actionListen.actionListen(-2, null, null, 0);
                 changeItemCallback(res);
             }
         });

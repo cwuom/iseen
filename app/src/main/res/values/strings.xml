@@ -44,4 +44,6 @@
     <string name="bg_setup">背景图片设定</string>
     <string name="choose_bg">从相册中挑选满意背景..</string>
     <string name="use_default_bg">使用默认背景</string>
+    <string name="copy_all">复制全部内容</string>
+    <string name="analytic_info">解析内容(复制部分内容)</string>
 </resources>

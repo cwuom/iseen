@@ -1,6 +1,9 @@
 package com.cwuom.iseen;
 
+import static com.cwuom.iseen.Util.UtilMethod.ShowLoadingSnackbar;
+import static com.cwuom.iseen.Util.UtilMethod.ShowSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.inputStreamToString;
+import static com.cwuom.iseen.Util.UtilMethod.replaceLastNewline;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
@@ -19,9 +22,9 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.FileUtils;
@@ -31,18 +34,15 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import com.cwuom.iseen.Adapter.CardHistoryAdapter;
 import com.cwuom.iseen.Dao.CardDao;
+import com.cwuom.iseen.Entity.EntityCallbackContent;
 import com.cwuom.iseen.Entity.EntityCard;
 import com.cwuom.iseen.Entity.EntityCardHistory;
 import com.cwuom.iseen.InitDataBase.InitCardDataBase;
@@ -53,11 +53,14 @@ import com.cwuom.iseen.databinding.ActivityMainBinding;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.kongzue.dialogx.BuildConfig;
+import com.kongzue.dialogx.dialogs.BottomMenu;
 import com.kongzue.dialogx.dialogs.FullScreenDialog;
 import com.kongzue.dialogx.dialogs.InputDialog;
 import com.kongzue.dialogx.interfaces.OnBindView;
 
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -78,8 +81,10 @@ import java.net.URL;
 
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /*
@@ -112,6 +117,8 @@ public class MainActivity extends AppCompatActivity {
     private final int HANDLER_MESSAGE_CONNECTION_ERR = -2;  // 监听连接错误时，后台弹出通知
     private final int HANDLER_MESSAGE_SERVER_REPLY = 2;  // 2FA代码发送到服务器且服务器回应时，弹出反馈窗口
     private final int HANDLER_MESSAGE_THREAD_STOP = 3;  // 监听线程被终止时，弹出提示窗口
+    private final int HANDLER_MESSAGE_QUERY_IP_SUCCESS = 4;  // 成功获取到IP详情时
+    private final int HANDLER_MESSAGE_QUERY_IP_FAILED = 5;  // IP详情获取失败时
     private String card_data = "";  // 卡片代码
 
     private String server;  // 服务器地址
@@ -131,6 +138,8 @@ public class MainActivity extends AppCompatActivity {
     private SharedPreferences.Editor editor;  // 编辑存放的配置
     private String hidePath;  // 隐匿路径
     private String res_2fa_callback;  // 输入2FA代码后，服务器响应的信息
+    private String getIPQueryRes_callback;
+    private String queryIP;
     private NotificationManager notificationManager;  // 通知管理器
     private String channelId;  // 渠道ID
     int nID = 0;  // 通知ID
@@ -139,9 +148,11 @@ public class MainActivity extends AppCompatActivity {
     private final ArrayList<String> listener_url = new ArrayList<>();  // 监听地址列表
     private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;  // 图片选择器 (旧android也许不兼容，Android13支持)
     private String image_uri;  // 背景图uri地址
-    private String API = "http://api.mrgnb.cn/API/qq_ark37.php?url=";
+    private final String API = "http://api.mrgnb.cn/API/qq_ark37.php?url=";   // API地址设置
 
     private final Handler handler = new CustomHandler(this);  // 创建handler
+
+    private Snackbar snackbar = null;  // 加载snackbar
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -165,9 +176,9 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("PhotoPicker", "Selected URI: " + uri);
                         editor.putString("image_uri", String.valueOf(uriToUri(uri, MainActivity.this))).apply();
                         binding.background.setImageURI(uri);
-                        ShowSnackbar("背景图已更新！");
+                        ShowSnackbar("背景图已更新！", MainActivity.this);
                     } else {
-                        ShowSnackbar("没有选择合适的媒体，维持原态");
+                        ShowSnackbar("没有选择合适的媒体，维持原态", MainActivity.this);
                         Log.d("PhotoPicker", "No media selected");
                     }
                 });
@@ -248,10 +259,10 @@ public class MainActivity extends AppCompatActivity {
                 cardListenerUrl = server+data_dir+"/"+id+".txt";
             }
             if (!JudgmentListenerRepetition(cardListenerUrl)){ // 判断是否重复
-                ShowSnackbar("正在提交数据并签名，请稍等。");
+                ShowSnackbar("正在提交数据并签名，请稍等。", MainActivity.this);
                 getCardData(req_url);  // 向API发送签名请求
             } else {
-                ShowSnackbar("相同标识的卡片已经存在，请更换标识。");
+                ShowSnackbar("相同标识的卡片已经存在，请更换标识。", MainActivity.this);
             }
         });
 
@@ -269,13 +280,13 @@ public class MainActivity extends AppCompatActivity {
             editor.putString("hidePath", hidePath);
 
             editor.apply();
-            ShowSnackbar("配置已保存！");
+            ShowSnackbar("配置已保存！", MainActivity.this);
         });
 
         // 恢复卡片配置
         binding.btnRestore.setOnClickListener(v -> {
             configRestore();
-            ShowSnackbar("配置已恢复！");
+            ShowSnackbar("配置已恢复！", MainActivity.this);
         });
 
         // 监听卡片标识的变化
@@ -298,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
         binding.btnGetUrl.setOnClickListener(v -> {
             updateInputInfo();
             copyToClipboard(server+data_dir+"/"+id+".png.txt");
-            ShowSnackbar("已将查询链接放入剪贴板。");
+            ShowSnackbar("已将查询链接放入剪贴板。", MainActivity.this);
         });
 
         // 平台跳转
@@ -337,9 +348,9 @@ public class MainActivity extends AppCompatActivity {
             editor.putBoolean("switch_followID", isChecked);
             editor.apply();
             if (isChecked){
-                ShowSnackbar("子标题将随着标识一同改变");
+                ShowSnackbar("子标题将随着标识一同改变", MainActivity.this);
             }else {
-                ShowSnackbar("子标题与标识已独立");
+                ShowSnackbar("子标题与标识已独立", MainActivity.this);
             }
         });
         binding.switchHidePhp.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -361,14 +372,14 @@ public class MainActivity extends AppCompatActivity {
                         .show();
             } else {
                 binding.textFieldHidePath.setVisibility(View.GONE);
-                ShowSnackbar("隐匿模式已关闭");
+                ShowSnackbar("隐匿模式已关闭", MainActivity.this);
             }
         });
 
         binding.switchHideEdit.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 hideDangerousInput();
-                ShowSnackbar("关键输入数据已被隐去");
+                ShowSnackbar("关键输入数据已被隐去", MainActivity.this);
             } else {
                 binding.server.setTransformationMethod(null);
                 binding.php.setTransformationMethod(null);
@@ -389,7 +400,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 binding.background.setVisibility(View.GONE);
                 binding.btnBackgroundSetting.setVisibility(View.GONE);
-                ShowSnackbar("不再显示背景了..");
+                ShowSnackbar("不再显示背景了..", MainActivity.this);
             }
         });
 
@@ -401,7 +412,7 @@ public class MainActivity extends AppCompatActivity {
                 if (id == R.id.item_use_default_background){
                     editor.remove("image_uri").apply();
                     binding.background.setImageResource(R.drawable.neri);
-                    ShowSnackbar("背景已设置为默认");
+                    ShowSnackbar("背景已设置为默认", MainActivity.this);
                 }
                 if (id == R.id.item_choose_background){
                     pickMedia.launch(new PickVisualMediaRequest.Builder()
@@ -607,9 +618,57 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
 
+            case -1:  // click 'Get'
+                snackbar = ShowLoadingSnackbar("请求已发送，正在等待服务器响应..", MainActivity.this.getCurrentFocus());
+                break;
+            case -2:  // do dismiss
+                if (snackbar != null) snackbar.dismiss();
+                break;
+            case -3:
+                copyToClipboard(entityCardHistory.getCardContentCallback());
+                break;
+            case -4:
+                String contents = replaceLastNewline(entityCardHistory.getCardContentCallback(), "");
+                ArrayList<EntityCallbackContent> list = new ArrayList<>();
+                for (String content : contents.split("\n\n")){
+                    String[] res = content.split("\n");
+                    if (res.length == 4){
+                        list.add(new EntityCallbackContent(res[0], res[1], res[2], res[3]));
+                    }
+                }
+                String[] ips = new String[list.size()];
+                for (EntityCallbackContent content : list){
+                    ips[list.indexOf(content)] = content.getIp() + " | " + content.getRegion();
+                }
+                BottomMenu.show(ips)
+                        .setOnMenuItemClickListener((dialog, text, index) -> {
+                            EntityCallbackContent entity = list.get(index);
+                            BottomMenu.show(new String[] {"点击下方信息进行复制", entity.getTime(), entity.getIp(), entity.getRegion(), entity.getUserAgent(), "-----------", "使用其它API查询此IP"})
+                                    .setOnMenuItemClickListener((dialog1, text1, index1) -> {
+                                        if (text1 == entity.getIp()){
+                                            copyToClipboard(entity.getIp());
+                                        }
+                                        if (text1 == entity.getTime()){
+                                            copyToClipboard(entity.getTime());
+                                        }
+                                        if (text1 == entity.getRegion()){
+                                            copyToClipboard(entity.getRegion());
+                                        }
+                                        if (text1 == entity.getUserAgent()){
+                                            copyToClipboard(entity.getUserAgent());
+                                        }
+                                        if (text1 == "使用其它API查询此IP"){
+                                            getIPQueryRes(entity.getIp());
+                                        }
+                                        return true;
+                                    });
+                            return true;
+                        });
+                break;
+
+
         }
     }
-
     /**
      * 处理卡片监听事件
      * @param card 卡片实体类
@@ -823,33 +882,6 @@ public class MainActivity extends AppCompatActivity {
         image_uri = sharedPreferences.getString("image_uri",null);
     }
 
-
-    /**
-     展示Snackbar
-     @param info 需要展示的信息
-     */
-    @SuppressLint("RestrictedApi")
-    void ShowSnackbar(String info){  // 注: 无障碍模式会导致Snackbar无动画
-        Snackbar snackbar;
-        View rootView = MainActivity.this.getWindow().getDecorView();
-        View coordinatorLayout = rootView.findViewById(android.R.id.content);
-        snackbar = Snackbar.make(coordinatorLayout, "", com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_LONG);
-        snackbar.getView().setBackgroundColor(Color.TRANSPARENT);
-        Snackbar.SnackbarLayout snackbarView = (Snackbar.SnackbarLayout) snackbar.getView();
-        ViewGroup.LayoutParams layoutParams = snackbarView.getLayoutParams();
-        FrameLayout.LayoutParams fl = new FrameLayout.LayoutParams(layoutParams.width, layoutParams.height);
-        fl.gravity = Gravity.BOTTOM;
-        snackbarView.setLayoutParams(fl);
-        @SuppressLint("InflateParams") View inflate = LayoutInflater.from(snackbar.getView().getContext()).inflate(R.layout.layout_snackbar_view, null);
-        @SuppressLint({"MissingInflatedId", "LocalSuppress"}) TextView text = inflate.findViewById(R.id.tv_snackbar);
-        text.setText(info);
-        @SuppressLint({"MissingInflatedId", "LocalSuppress"}) TextView text2 = inflate.findViewById(R.id.tv_act);
-        text2.setText("好");
-        text2.setOnClickListener(v -> snackbar.dismiss());
-        snackbarView.addView(inflate);
-        snackbar.show();
-    }
-
     /**
      * 复制内容到剪贴板
      * @param text 需要复制的内容
@@ -867,6 +899,52 @@ public class MainActivity extends AppCompatActivity {
     String getDate(){
         @SuppressLint("SimpleDateFormat") SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return df.format(new Date());
+    }
+
+    /**
+     * 此方法用于向用户推送通知(当探针监听器内容或状态发生更改时)
+     * 取决于通知的类型。
+     * @param title 通知标题
+     * @param subtitle 通知副标题
+     * @param type 通知类型 (0: 监听器内容发生改变，1/2:监听器连接超时/无法返回正确数据)
+     */
+    void push_listen_res(String title, String subtitle, int type) {
+        Notification notification;
+        // 根据通知的类型，将创建不同的通知
+        switch (type) {
+            case 0:  // 监听器内容发生改变
+                nID += 1;
+                notification = new Notification.Builder(MainActivity.this, channelId)
+                        .setContentTitle(title)
+                        .setContentText(subtitle)
+                        .setWhen(System.currentTimeMillis())
+                        .setSmallIcon(R.drawable.iseen)
+                        .build();
+
+                notificationManager.notify(nID, notification);
+                break;
+            case 1:  // 监听器连接超时
+                notification = new Notification.Builder(MainActivity.this, channelId)
+                        .setContentTitle(title)
+                        .setContentText(subtitle)
+                        .setWhen(System.currentTimeMillis())
+                        .setSmallIcon(R.drawable.iseen)
+                        .build();
+
+                notificationManager.notify(-1, notification);
+                break;
+            case 2:  // 监听器无法返回正确数据
+                notification = new Notification.Builder(MainActivity.this, channelId)
+                        .setContentTitle(title)
+                        .setContentText(subtitle)
+                        .setWhen(System.currentTimeMillis())
+                        .setSmallIcon(R.drawable.iseen)
+                        .build();
+
+                notificationManager.notify(-2, notification);
+                break;
+
+        }
     }
 
     /**
@@ -915,56 +993,62 @@ public class MainActivity extends AppCompatActivity {
             if (msg.what == HANDLER_MESSAGE_THREAD_STOP) {
                 UtilMethod.showDialog("监听线程已终止", "如果您没有手动关闭监听器出现此弹窗，请反馈。如果您手动关闭监听器，请忽略此弹窗。", MainActivity.this);
             }
+            if (msg.what == HANDLER_MESSAGE_QUERY_IP_SUCCESS) {
+                JSONObject jsonObject = null;
+                try {
+                    jsonObject = new JSONObject(getIPQueryRes_callback).getJSONObject("data");
+                    String location = jsonObject.getString("location");
+                    String postalCode = jsonObject.getJSONObject("detail").getString("邮政编码");
+                    String longitude = jsonObject.getJSONObject("detail").getString("经度");
+                    String latitude = jsonObject.getJSONObject("detail").getString("纬度");
+                    String altitude = jsonObject.getJSONObject("detail").getString("海拔");
+                    String timezone = jsonObject.getJSONObject("detail").getString("时区");
+                    String operator = jsonObject.getJSONObject("detail").getString("运营商");
+                    String isProxy = jsonObject.getJSONObject("detail").getString("是否代理");
+                    String proxyType = jsonObject.getJSONObject("detail").getString("代理类型");
+                    String type = jsonObject.getJSONObject("detail").getString("应用场景");
+                    String res = "IP 归属地: "+location+"\n邮政编码: "+postalCode+"\n经度: "+longitude+"\n纬度: "+latitude+"\n海拔: "+altitude+"\n时区: "+timezone+"\n运营商: "+operator+"\n是否代理: "+isProxy+"\n代理类型: "+proxyType+"\n应用场景: "+type;
+                    new MaterialAlertDialogBuilder(MainActivity.this)
+                            .setTitle(queryIP+"的查询结果")
+                            .setMessage(res)
+                            .setNegativeButton("复制结果", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    copyToClipboard(res);
+                                }
+                            })
+                            .setPositiveButton("好", null).show();
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+//                UtilMethod.showDialog("返回详情", getIPQueryRes_callback, MainActivity.this);
+            }
+            if (msg.what == HANDLER_MESSAGE_QUERY_IP_FAILED) {
+                UtilMethod.showDialog("在获取IP详情时发生错误", "请检查网络设置..", MainActivity.this);
+            }
         }
     }
 
+     void getIPQueryRes(String ip){
+         OkHttpClient okHttpClient = new OkHttpClient();
+         RequestBody requestBody = new FormBody.Builder()
+                 .add("ip", ip)
+                 .build();
+         Request request = new Request.Builder().url("https://api.wetools.com/tool/ip").post(requestBody).build();
+         okHttpClient.newCall(request).enqueue(new Callback() {
+             @Override
+             public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                 handler.sendEmptyMessage(HANDLER_MESSAGE_QUERY_IP_FAILED);
+             }
 
-     /**
-      * 此方法用于向用户推送通知(当探针监听器内容或状态发生更改时)
-      * 取决于通知的类型。
-      * @param title 通知标题
-      * @param subtitle 通知副标题
-      * @param type 通知类型 (0: 监听器内容发生改变，1/2:监听器连接超时/无法返回正确数据)
-      */
-     void push_listen_res(String title, String subtitle, int type) {
-         Notification notification;
-         // 根据通知的类型，将创建不同的通知
-         switch (type) {
-             case 0:  // 监听器内容发生改变
-                 nID += 1;
-                 notification = new Notification.Builder(MainActivity.this, channelId)
-                         .setContentTitle(title)
-                         .setContentText(subtitle)
-                         .setWhen(System.currentTimeMillis())
-                         .setSmallIcon(R.drawable.iseen)
-                         .build();
-
-                 notificationManager.notify(nID, notification);
-                 break;
-             case 1:  // 监听器连接超时
-                 notification = new Notification.Builder(MainActivity.this, channelId)
-                         .setContentTitle(title)
-                         .setContentText(subtitle)
-                         .setWhen(System.currentTimeMillis())
-                         .setSmallIcon(R.drawable.iseen)
-                         .build();
-
-                 notificationManager.notify(-1, notification);
-                 break;
-             case 2:  // 监听器无法返回正确数据
-                 notification = new Notification.Builder(MainActivity.this, channelId)
-                         .setContentTitle(title)
-                         .setContentText(subtitle)
-                         .setWhen(System.currentTimeMillis())
-                         .setSmallIcon(R.drawable.iseen)
-                         .build();
-
-                 notificationManager.notify(-2, notification);
-                 break;
-
-         }
+             @Override
+             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                 queryIP = ip;
+                 getIPQueryRes_callback = Objects.requireNonNull(response.body()).string();
+                 handler.sendEmptyMessage(HANDLER_MESSAGE_QUERY_IP_SUCCESS);
+             }
+         });
      }
-
 
 
 }
