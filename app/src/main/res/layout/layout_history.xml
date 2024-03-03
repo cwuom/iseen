@@ -2,7 +2,8 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -24,16 +25,33 @@
                 app:iconTint="@color/firebrick"
                 />
 
-            <TextView
-                android:id="@+id/number_of_cards"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:textSize="@dimen/font_normal_size"
-                android:text=""
-                android:layout_marginEnd="@dimen/font_normal_size"
-                />
+                android:orientation="horizontal"
+                android:gravity="end|center">
+
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@color/transparent"
+                    android:visibility="invisible"
+                    />
+
+                <TextView
+                    android:id="@+id/more_options"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/font_large_size"
+                    android:text="@string/more"
+                    android:paddingHorizontal="@dimen/font_normal_size"
+                    android:paddingVertical="@dimen/view_margin_small_spacing"
+                    android:textColor="#1190CA"
+                    android:textStyle="bold"
+                    />
+
+            </LinearLayout>
 
         </RelativeLayout>
 
@@ -47,36 +65,36 @@
                 android:padding="@dimen/font_normal_size"
                 android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/batch_operation"
-                    android:textSize="@dimen/font_large_size"
-                    android:textStyle="bold"
-                    android:layout_gravity="center"
-                    />
+<!--                <TextView-->
+<!--                    android:layout_width="wrap_content"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:text="@string/batch_operation"-->
+<!--                    android:textSize="@dimen/font_large_size"-->
+<!--                    android:textStyle="bold"-->
+<!--                    android:layout_gravity="center"-->
+<!--                    />-->
 
-                <Button
-                    android:id="@+id/btn_del_all"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/del_all_history_on_server"
-                    android:layout_marginTop="@dimen/view_margin_normal_spacing"
-                    />
+<!--                <Button-->
+<!--                    android:id="@+id/btn_del_all"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:text="@string/del_all_history_on_server"-->
+<!--                    android:layout_marginTop="@dimen/view_margin_normal_spacing"-->
+<!--                    />-->
 
-                <Button
-                    android:id="@+id/btn_del_all_local"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/del_all_history_on_local"
-                    android:layout_marginTop="@dimen/view_margin_normal_spacing"
-                    />
+<!--                <Button-->
+<!--                    android:id="@+id/btn_del_all_local"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:text="@string/del_all_history_on_local"-->
+<!--                    android:layout_marginTop="@dimen/view_margin_normal_spacing"-->
+<!--                    />-->
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="0.5dp"
-                    android:layout_marginTop="@dimen/font_small_size"
-                    android:background="@color/gray" />
+<!--                <View-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="0.5dp"-->
+<!--                    android:layout_marginTop="@dimen/font_small_size"-->
+<!--                    android:background="@color/gray" />-->
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -85,8 +103,14 @@
                     android:textSize="@dimen/font_large_size"
                     android:textStyle="bold"
                     android:layout_gravity="center"
-                    android:layout_marginTop="@dimen/font_large_size"
                     />
+                <TextView
+                    android:id="@+id/number_of_cards"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="共114条历史"
+                    android:textSize="@dimen/font_normal_size"
+                    android:layout_gravity="center_horizontal"/>
 
                 <TextView
                     android:id="@+id/no_card"

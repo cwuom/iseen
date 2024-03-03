@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/item_set_2fa_verify_url"
+        android:title="@string/_2fa_verify_url_setup" />
+    <item android:id="@+id/item_del_all_on_server"
+        android:title="@string/del_all_history_on_server" />
+    <item android:id="@+id/item_del_all_on_local"
+        android:title="@string/del_all_history_on_local" />
+    <item android:id="@+id/item_push_setup"
+        android:title="@string/push_setup" />
+</menu>

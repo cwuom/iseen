@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="@dimen/font_normal_size">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/push_or_req_setup"
+            android:textStyle="bold"
+            android:textSize="@dimen/font_large_size"
+            android:textColor="@color/black"
+            android:layout_gravity="center"
+            />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/push_or_req_setup_subtitle"
+            android:layout_gravity="center"
+            />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/req_setting_card"
+            style="?attr/materialCardViewFilledStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/view_margin_small_spacing"
+            android:layout_marginEnd="@dimen/view_margin_small_spacing"
+            android:layout_marginBottom="@dimen/view_margin_small_spacing"
+            android:clickable="true"
+            android:orientation="vertical"
+            android:layout_margin="@dimen/view_margin_normal_spacing"
+            app:cardBackgroundColor="#6AF4F4F4"
+            app:strokeColor="@color/gray"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="@dimen/view_margin_normal_spacing">
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center|start"
+                    android:orientation="horizontal"
+                    android:padding="@dimen/view_margin_small_spacing">
+
+                    <ImageView
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:src="@drawable/baseline_send_24" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="55dp"
+                        android:ellipsize="end"
+                        android:maxEms="10"
+                        android:maxLines="1"
+                        android:text="@string/interval_setting"
+                        android:textColor="@color/black"
+                        android:textSize="@dimen/font_normal_size"
+                        android:textStyle="bold" />
+                </RelativeLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/textField_interval"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/interval_setting_hint"
+                    android:layout_marginTop="@dimen/view_margin_normal_spacing">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/interval"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <Button
+                    android:id="@+id/btn_save_and_apply"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/view_margin_normal_spacing"
+                    android:text="@string/save_and_apply">
+
+                </Button>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/push_setting_card"
+            style="?attr/materialCardViewFilledStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/view_margin_small_spacing"
+            android:layout_marginEnd="@dimen/view_margin_small_spacing"
+            android:layout_marginBottom="@dimen/view_margin_small_spacing"
+            android:clickable="true"
+            android:orientation="vertical"
+            android:layout_margin="@dimen/view_margin_normal_spacing"
+            app:cardBackgroundColor="#6AFFFFFF"
+            app:strokeColor="@color/gray"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="@dimen/view_margin_normal_spacing">
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center|start"
+                    android:orientation="horizontal"
+                    android:padding="@dimen/view_margin_small_spacing">
+
+                    <ImageView
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:src="@drawable/baseline_circle_notifications_24" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="55dp"
+                        android:ellipsize="end"
+                        android:maxEms="10"
+                        android:maxLines="1"
+                        android:text="@string/push_setting"
+                        android:textColor="@color/black"
+                        android:textSize="@dimen/font_normal_size"
+                        android:textStyle="bold" />
+
+
+                </RelativeLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_mask_request_timeout_notification"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:checked="false"
+                    android:text="@string/mask_request_timeout_notification"
+                    android:layout_marginTop="@dimen/view_margin_normal_spacing"/>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_mask_request_err_notification"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:checked="false"
+                    android:text="@string/mask_request_err_notification"/>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

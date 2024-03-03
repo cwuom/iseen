@@ -12,7 +12,7 @@
     <string name="content_warning">程序仅提供签名(由陌然API提供支持)后的卡片代码，不提供卡片发送服务；如果您需要发送卡片，请自行寻找可信任的模块。由于不受开发者所能控制的因素居多（如QQ的版本更新导致现有卡片被和谐、所需服务的运营商并不稳定，出现大规模网络攻击、风控及不可抗力因素的影响），故不保证长期可用性，切勿用于非法用途并低调使用。一切开发仅供测试与学习！</string>
     <string name="title_warning">Warning</string>
     <string name="set_random_uuid">设置随机标识</string>
-    <string name="save_cfg">记住此次配置</string>
+    <string name="save_cfg">记住所有配置</string>
     <string name="restore_cfg">恢复此前的配置</string>
     <string name="subtitle_follow_id">子标题跟随标识</string>
     <string name="developer">Developer</string>
@@ -28,7 +28,7 @@
     <string name="delete">Delete</string>
     <string name="more_actions">More Actions</string>
     <string name="back">返回</string>
-    <string name="del_all_history_on_server">在云端清空所有监听记录(长按配置)</string>
+    <string name="del_all_history_on_server">在云端清空所有监听记录(需2FA验证)</string>
     <string name="batch_operation">批量操作</string>
     <string name="del_all_history_on_local">删除所有本地卡片历史</string>
     <string name="no_card_info"><![CDATA[这里貌似只有我一个人捏..( > <.)]]></string>
@@ -46,4 +46,17 @@
     <string name="use_default_bg">使用默认背景</string>
     <string name="copy_all">复制全部内容</string>
     <string name="analytic_info">解析内容(复制部分内容)</string>
+    <string name="more">···</string>
+    <string name="disable_listening_err_notifications">屏蔽监听错误通知</string>
+    <string name="interval_setting">监听间隔设置(默认30s)</string>
+    <string name="_2fa_verify_url_setup">2FA验证地址设定</string>
+    <string name="push_or_req_setup">通知推送/请求设定</string>
+    <string name="push_or_req_setup_subtitle">在这里你可以设置请求间隔及屏蔽部分通知</string>
+    <string name="interval_setting_hint">每隔(?)秒请求一次</string>
+    <string name="push_setting">通知设定</string>
+    <string name="mask_request_timeout_notification">屏蔽请求超时通知</string>
+    <string name="mask_request_err_notification">屏蔽请求异常通知</string>
+    <string name="push_setup">消息推送设置</string>
+    <string name="save_and_apply">保存并应用</string>
+    <string name="use_dev_cfg">填充默认服务器设置</string>
 </resources>

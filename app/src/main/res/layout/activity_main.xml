@@ -257,28 +257,6 @@
 
                     </Button>
 
-                    <Button
-                        android:id="@+id/btn_save"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/save_cfg"
-                        android:layout_marginTop="@dimen/view_margin_normal_spacing">
-
-                    </Button>
-
-                    <Button
-                        android:id="@+id/btn_restore"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/restore_cfg">
-
-                    </Button>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="0.5dp"
-                        android:layout_marginTop="@dimen/font_small_size"
-                        android:background="@color/gray" />
 
 
                 </LinearLayout>
@@ -395,7 +373,40 @@
 
                     </LinearLayout>
 
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0.5dp"
+                        android:layout_marginTop="@dimen/font_small_size"
+                        android:background="@color/gray" />
+
+                    <Button
+                        android:id="@+id/btn_save"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/save_cfg"
+                        android:layout_marginTop="@dimen/view_margin_normal_spacing">
+
+                    </Button>
+
+                    <Button
+                        android:id="@+id/btn_restore"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/restore_cfg">
+
+                    </Button>
+
+                    <Button
+                        android:id="@+id/btn_default_configuration"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/use_dev_cfg">
+
+                    </Button>
+
                 </LinearLayout>
+
 
             </com.google.android.material.card.MaterialCardView>
 

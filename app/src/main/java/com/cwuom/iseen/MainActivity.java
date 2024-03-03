@@ -38,6 +38,9 @@ import android.view.View;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.cwuom.iseen.Adapter.CardHistoryAdapter;
@@ -51,8 +54,10 @@ import com.cwuom.iseen.Util.NotificationUtil;
 import com.cwuom.iseen.Util.UtilMethod;
 import com.cwuom.iseen.databinding.ActivityMainBinding;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.snackbar.Snackbar;
 import com.kongzue.dialogx.BuildConfig;
+import com.kongzue.dialogx.dialogs.BottomDialog;
 import com.kongzue.dialogx.dialogs.BottomMenu;
 import com.kongzue.dialogx.dialogs.FullScreenDialog;
 import com.kongzue.dialogx.dialogs.InputDialog;
@@ -134,6 +139,9 @@ public class MainActivity extends AppCompatActivity {
     private Boolean switch_hidePhp = Boolean.TRUE;  // 是否隐藏php地址（可以把它隐藏成沙雕图）
     private Boolean switch_hide_dangerous_input = Boolean.FALSE;  // 是否隐藏关键输入信息
     private Boolean switch_show_background = Boolean.TRUE;  // 是否显示背景图片
+    private Boolean switch_MaskConnectionErr = Boolean.FALSE;  // 是否屏蔽连接错误的通知
+    private Boolean switch_MaskTimeout = Boolean.FALSE;  // 是否屏蔽请求超时的通知
+
     private SharedPreferences sharedPreferences;  // SharedPreferences，存放配置
     private SharedPreferences.Editor editor;  // 编辑存放的配置
     private String hidePath;  // 隐匿路径
@@ -153,6 +161,8 @@ public class MainActivity extends AppCompatActivity {
     private final Handler handler = new CustomHandler(this);  // 创建handler
 
     private Snackbar snackbar = null;  // 加载snackbar
+    private int req_interval = 30000;
+    private boolean skipHiddenModeTips = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -268,18 +278,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 保存卡片配置
         binding.btnSave.setOnClickListener(v -> {
-            updateInputInfo();
-            editor.putString("server", server);
-            editor.putString("title", title);
-            editor.putString("subtitle", subtitle);
-            editor.putString("yx", yx);
-            editor.putString("id", id);
-            editor.putString("php_filename", php_filename);
-            editor.putString("data_dir", data_dir);
-            editor.putString("note", note);
-            editor.putString("hidePath", hidePath);
-
-            editor.apply();
+            save_config();
             ShowSnackbar("配置已保存！", MainActivity.this);
         });
 
@@ -287,6 +286,27 @@ public class MainActivity extends AppCompatActivity {
         binding.btnRestore.setOnClickListener(v -> {
             configRestore();
             ShowSnackbar("配置已恢复！", MainActivity.this);
+        });
+
+        // 填充默认服务器设置
+        binding.btnDefaultConfiguration.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onClick(View v) {
+                binding.server.setText("https://api.cwuom.love/");
+                binding.php.setText("kp.php");
+                binding.dataDirectory.setText("kpData");
+                binding.hidePath.setText("special/kp/");
+                switch_hidePhp = Boolean.TRUE;
+                skipHiddenModeTips = true;
+                binding.switchHidePhp.setChecked(true);
+                save_config();
+
+                String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
+                binding.id.setText(uuid);
+                ShowSnackbar("默认服务器配置已填充~", MainActivity.this);
+                skipHiddenModeTips = false;
+            }
         });
 
         // 监听卡片标识的变化
@@ -356,7 +376,7 @@ public class MainActivity extends AppCompatActivity {
         binding.switchHidePhp.setOnCheckedChangeListener((buttonView, isChecked) -> {
             editor.putBoolean("switch_hidePhp", false);
             editor.apply();
-            if (isChecked){
+            if (isChecked && !skipHiddenModeTips){
                 new MaterialAlertDialogBuilder(this)
                         .setTitle("并不是所有服务器都支持这个特性！")
                         .setMessage("开启后，程序生成的卡片代码将不包含自己的php地址，这可以一定程度的防止他人抓包。需要他工作的前提是服务端需要在nginx规则里设置如下代码，如\nlocation ~* ^/special/kp/(.*)\\.png$ {\n" +
@@ -373,6 +393,10 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 binding.textFieldHidePath.setVisibility(View.GONE);
                 ShowSnackbar("隐匿模式已关闭", MainActivity.this);
+            }
+
+            if (skipHiddenModeTips){
+                binding.textFieldHidePath.setVisibility(View.VISIBLE);
             }
         });
 
@@ -461,6 +485,21 @@ public class MainActivity extends AppCompatActivity {
         return file.toURI();
     }
 
+    void save_config(){
+        updateInputInfo();
+        editor.putString("server", server);
+        editor.putString("title", title);
+        editor.putString("subtitle", subtitle);
+        editor.putString("yx", yx);
+        editor.putString("id", id);
+        editor.putString("php_filename", php_filename);
+        editor.putString("data_dir", data_dir);
+        editor.putString("note", note);
+        editor.putString("hidePath", hidePath);
+
+        editor.apply();
+    }
+
     /**
      * 隐藏关键输入信息
      */
@@ -481,7 +520,8 @@ public class MainActivity extends AppCompatActivity {
                 TextView tv_no_card = v.findViewById(R.id.no_card);
                 RecyclerView rv_card_list = v.findViewById(R.id.card_list);
                 TextView tv_count = v.findViewById(R.id.number_of_cards);
-                Button btn_del_all = v.findViewById(R.id.btn_del_all);
+                TextView tv_more_options = v.findViewById(R.id.more_options);
+//                Button btn_del_all = v.findViewById(R.id.btn_del_all);
                 List<EntityCard> localCard = getLocalCardHistory();
                 if (localCard != null && localCard.size() > 0){
                     tv_count.setText(getString(R.string.number_of_cards, Objects.requireNonNull(localCard).size()+""));
@@ -507,63 +547,184 @@ public class MainActivity extends AppCompatActivity {
                     tv_no_card.setVisibility(View.VISIBLE);
                 }
 
-                v.findViewById(R.id.btn_del_all_local).setOnClickListener(v15 -> new MaterialAlertDialogBuilder(v15.getContext())
-                        .setTitle("确认删除所有卡片么？")
-                        .setMessage("删除所有卡片后在本地不可恢复，但服务器上的文件不会一并清除。您仍有权限可通过指定网页链接对其进行访问！")
-                        .setNeutralButton("手滑了..", null)
-                        .setPositiveButton("确认删除", (dialog1, which) -> {
-                            cardDao.deleteAll();
-                            tv_count.setText("");
-                            rv_card_list.setAdapter(null);
-                            tv_no_card.setVisibility(View.VISIBLE);
-                        })
-                        .show());
-
-                btn_del_all.setOnClickListener(v14 -> new InputDialog("您需要先通过2FA验证", "默认您已长按此按钮并填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
-                        .setCancelable(false)
-                        .setOkButton((baseDialog, v12, code) -> {
-                            String url = sharedPreferences.getString("auth_server", "");
-                            if (!url.equals("")){
-                                OkHttpClient client = new OkHttpClient();
-                                Request request = new Request.Builder()
-                                        .url(url+code)
-                                        .build();
-                                Call call = client.newCall(request);
-                                call.enqueue(new Callback() {
-                                    @Override
-                                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                                        if (e instanceof SocketTimeoutException){
-                                            handler.sendEmptyMessage(HANDLER_MESSAGE_TIMEOUT);
-                                        }
-                                        if (e instanceof ConnectException){
-                                            handler.sendEmptyMessage(HANDLER_MESSAGE_CONNECTION_ERR);
-                                        }
-                                    }
-                                    @Override
-                                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                                        res_2fa_callback = Objects.requireNonNull(response.body()).string();
-                                        handler.sendEmptyMessage(HANDLER_MESSAGE_SERVER_REPLY);
-                                    }
-                                });
-                            } else {
-                                UtilMethod.showDialog("无法建立连接", "验证服务器地址未配置！", MainActivity.this);
+                tv_more_options.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        PopupMenu popupMenu = new PopupMenu(MainActivity.this, v);
+                        popupMenu.getMenuInflater().inflate(R.menu.history_manage_menu, popupMenu.getMenu());
+                        popupMenu.setOnMenuItemClickListener(item -> {
+                            int id = item.getItemId();
+                            if (id == R.id.item_set_2fa_verify_url){
+                                new InputDialog("键入您的验证服务器地址", "请先输入验证服务器地址(格式: https://example.com/del.php?verify=)，点击‘好’后自动保存。请严格按照格式要求填写，错误的填写也许会造成闪退等预期之外的问题。", "好", "取消")
+                                        .setCancelable(false)
+                                        .setOkButton((baseDialog, v131, server) -> {
+                                            editor.putString("auth_server", server);
+                                            editor.apply();
+                                            return false;
+                                        })
+                                        .show();
                             }
+                            if (id == R.id.item_del_all_on_server){
+                                new InputDialog("您需要先通过2FA验证", "默认您已长按此按钮并填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
+                                        .setCancelable(false)
+                                        .setOkButton((baseDialog, v12, code) -> {
+                                            String url = sharedPreferences.getString("auth_server", "");
+                                            if (!url.equals("")){
+                                                OkHttpClient client = new OkHttpClient();
+                                                Request request = new Request.Builder()
+                                                        .url(url+code)
+                                                        .build();
+                                                Call call = client.newCall(request);
+                                                call.enqueue(new Callback() {
+                                                    @Override
+                                                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                                                        if (e instanceof SocketTimeoutException){
+                                                            handler.sendEmptyMessage(HANDLER_MESSAGE_TIMEOUT);
+                                                        }
+                                                        if (e instanceof ConnectException){
+                                                            handler.sendEmptyMessage(HANDLER_MESSAGE_CONNECTION_ERR);
+                                                        }
+                                                    }
+                                                    @Override
+                                                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                                                        res_2fa_callback = Objects.requireNonNull(response.body()).string();
+                                                        handler.sendEmptyMessage(HANDLER_MESSAGE_SERVER_REPLY);
+                                                    }
+                                                });
+                                            } else {
+                                                UtilMethod.showDialog("无法建立连接", "验证服务器地址未配置！", MainActivity.this);
+                                            }
 
+                                            return false;
+                                        })
+                                        .show();
+                            }
+                            if (id == R.id.item_del_all_on_local){
+                                new MaterialAlertDialogBuilder(v.getContext())
+                                        .setTitle("确认删除所有卡片么？")
+                                        .setMessage("删除所有卡片后在本地不可恢复，但服务器上的文件不会一并清除。您仍有权限可通过指定网页链接对其进行访问！")
+                                        .setNeutralButton("手滑了..", null)
+                                        .setPositiveButton("确认删除", (dialog1, which) -> {
+                                            cardDao.deleteAll();
+                                            tv_count.setText("");
+                                            rv_card_list.setAdapter(null);
+                                            tv_no_card.setVisibility(View.VISIBLE);
+                                        })
+                                        .show();
+                            }
+                            if (id == R.id.item_push_setup){
+                                BottomDialog.show("", "",
+                                        new OnBindView<BottomDialog>(R.layout.layout_notification_settings) {
+                                            @SuppressLint("SetTextI18n")
+                                            @Override
+                                            public void onBind(BottomDialog dialog, View v) {
+                                                EditText mEtInterval = v.findViewById(R.id.interval);
+                                                Button mBtnSave = v.findViewById(R.id.btn_save_and_apply);
+                                                MaterialSwitch mSwitchMaskTimeout = v.findViewById(R.id.switch_mask_request_timeout_notification);
+                                                MaterialSwitch mSwitchMaskConnectionErr = v.findViewById(R.id.switch_mask_request_err_notification);
+                                                mEtInterval.setText((req_interval / 1000) + "");
+                                                mSwitchMaskTimeout.setChecked(switch_MaskTimeout);
+                                                mSwitchMaskConnectionErr.setChecked(switch_MaskConnectionErr);
+                                                mBtnSave.setOnClickListener(v13 -> {
+                                                    try {
+                                                        req_interval = Integer.parseInt(String.valueOf(mEtInterval.getText())) * 1000;
+                                                        editor.putInt("req_interval", req_interval).apply();
+                                                    } catch (NumberFormatException e) {
+                                                        UtilMethod.showDialog("无法处理输入的数据", "请输入一个整数，单位秒。", MainActivity.this);
+                                                    }
+                                                });
+
+                                                mSwitchMaskConnectionErr.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                                    switch_MaskConnectionErr = isChecked;
+                                                    editor.putBoolean("switchMaskConnectionErr", isChecked).apply();
+                                                });
+
+                                                mSwitchMaskTimeout.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                                    switch_MaskTimeout = isChecked;
+                                                    editor.putBoolean("switchMaskTimeout", isChecked).apply();
+                                                });
+                                            }
+                                        });
+//                                new InputDialog("输入请求间隔(单位秒)", "输入'30'就是每隔30秒请求一次API，输入'10'就是每隔10秒请求一次API，以此类推...", "好", "取消")
+//                                        .setCancelable(false)
+//                                        .setOkButton((baseDialog, v131, time) -> {
+//                                            try {
+//                                                req_interval = Integer.parseInt(time) * 1000;
+//                                                editor.putInt("req_interval", req_interval);
+//                                                editor.apply();
+//                                            } catch (NumberFormatException e) {
+//                                                UtilMethod.showDialog("无法处理输入的数据", "请输入一个整数，单位秒。", MainActivity.this);
+//                                                return true;
+//                                            }
+//
+//                                            return false;
+//                                        })
+//                                        .show();
+                                return true;
+                            }
                             return false;
-                        })
-                        .show());
-
-                btn_del_all.setOnLongClickListener(v13 -> {
-                    new InputDialog("键入您的验证服务器地址", "请先输入验证服务器地址(格式: https://example.com/del.php?verify=)，点击‘好’后自动保存。请严格按照格式要求填写，错误的填写也许会造成闪退等预期之外的问题。", "好", "取消")
-                            .setCancelable(false)
-                            .setOkButton((baseDialog, v131, server) -> {
-                                editor.putString("auth_server", server);
-                                editor.apply();
-                                return false;
-                            })
-                            .show();
-                    return true;
+                        });
+                        popupMenu.show();
+                    }
                 });
+
+//                v.findViewById(R.id.btn_del_all_local).setOnClickListener(v15 -> new MaterialAlertDialogBuilder(v15.getContext())
+//                        .setTitle("确认删除所有卡片么？")
+//                        .setMessage("删除所有卡片后在本地不可恢复，但服务器上的文件不会一并清除。您仍有权限可通过指定网页链接对其进行访问！")
+//                        .setNeutralButton("手滑了..", null)
+//                        .setPositiveButton("确认删除", (dialog1, which) -> {
+//                            cardDao.deleteAll();
+//                            tv_count.setText("");
+//                            rv_card_list.setAdapter(null);
+//                            tv_no_card.setVisibility(View.VISIBLE);
+//                        })
+//                        .show());
+//
+//                btn_del_all.setOnClickListener(v14 -> new InputDialog("您需要先通过2FA验证", "默认您已长按此按钮并填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
+//                        .setCancelable(false)
+//                        .setOkButton((baseDialog, v12, code) -> {
+//                            String url = sharedPreferences.getString("auth_server", "");
+//                            if (!url.equals("")){
+//                                OkHttpClient client = new OkHttpClient();
+//                                Request request = new Request.Builder()
+//                                        .url(url+code)
+//                                        .build();
+//                                Call call = client.newCall(request);
+//                                call.enqueue(new Callback() {
+//                                    @Override
+//                                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
+//                                        if (e instanceof SocketTimeoutException){
+//                                            handler.sendEmptyMessage(HANDLER_MESSAGE_TIMEOUT);
+//                                        }
+//                                        if (e instanceof ConnectException){
+//                                            handler.sendEmptyMessage(HANDLER_MESSAGE_CONNECTION_ERR);
+//                                        }
+//                                    }
+//                                    @Override
+//                                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+//                                        res_2fa_callback = Objects.requireNonNull(response.body()).string();
+//                                        handler.sendEmptyMessage(HANDLER_MESSAGE_SERVER_REPLY);
+//                                    }
+//                                });
+//                            } else {
+//                                UtilMethod.showDialog("无法建立连接", "验证服务器地址未配置！", MainActivity.this);
+//                            }
+//
+//                            return false;
+//                        })
+//                        .show());
+//
+//                btn_del_all.setOnLongClickListener(v13 -> {
+//                    new InputDialog("键入您的验证服务器地址", "请先输入验证服务器地址(格式: https://example.com/del.php?verify=)，点击‘好’后自动保存。请严格按照格式要求填写，错误的填写也许会造成闪退等预期之外的问题。", "好", "取消")
+//                            .setCancelable(false)
+//                            .setOkButton((baseDialog, v131, server) -> {
+//                                editor.putString("auth_server", server);
+//                                editor.apply();
+//                                return false;
+//                            })
+//                            .show();
+//                    return true;
+//                });
             }
         }).show();
     }
@@ -604,7 +765,7 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         new MaterialAlertDialogBuilder(MainActivity.this)
                                 .setTitle("真的希望监听这个卡片么？")
-                                .setMessage("监听后，但会造成额外的资源占用；当网络环境处于不稳定状态时，不建议开启。程序将每隔30秒向监听地址发送一次请求，以确认已读状态... 您需要给予一些权限来推送更新，否则这个功能对您来说是无效的。")
+                                .setMessage("监听后，会造成额外的资源占用；当网络环境处于不稳定状态时，不建议开启。程序将每隔"+(req_interval / 1000)+"秒向监听地址发送一次请求，以确认已读状态... 您需要给予一些权限来推送更新，否则这个功能对您来说是无效的。")
                                 .setOnDismissListener(dialog -> isDismiss = true)
                                 .setNeutralButton("算了", null)
                                 .setPositiveButton("开始监听", (dialog, which) -> {
@@ -721,7 +882,7 @@ public class MainActivity extends AppCompatActivity {
      * （防isInterrupted自动改变）
      */
     private void throwInMethod() throws InterruptedException {
-        Thread.sleep(30000);
+        Thread.sleep(req_interval);
     }
 
     /**
@@ -880,6 +1041,12 @@ public class MainActivity extends AppCompatActivity {
         switch_hide_dangerous_input = sharedPreferences.getBoolean("switch_hide_edit",false);
         switch_show_background = sharedPreferences.getBoolean("showBackground",true);
         image_uri = sharedPreferences.getString("image_uri",null);
+        req_interval = sharedPreferences.getInt("req_interval",30000);
+        if (req_interval / 1000 == 0){
+            req_interval = 30000;
+        }
+        switch_MaskTimeout = sharedPreferences.getBoolean("switchMaskTimeout",false);
+        switch_MaskConnectionErr = sharedPreferences.getBoolean("switchMaskConnectionErr", false);
     }
 
     /**
@@ -931,7 +1098,9 @@ public class MainActivity extends AppCompatActivity {
                         .setSmallIcon(R.drawable.iseen)
                         .build();
 
-                notificationManager.notify(-1, notification);
+                if (!switch_MaskTimeout){
+                    notificationManager.notify(-1, notification);
+                }
                 break;
             case 2:  // 监听器无法返回正确数据
                 notification = new Notification.Builder(MainActivity.this, channelId)
@@ -941,7 +1110,9 @@ public class MainActivity extends AppCompatActivity {
                         .setSmallIcon(R.drawable.iseen)
                         .build();
 
-                notificationManager.notify(-2, notification);
+                if (!switch_MaskConnectionErr){
+                    notificationManager.notify(-2, notification);
+                }
                 break;
 
         }
