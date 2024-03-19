@@ -22,7 +22,6 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -38,9 +37,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import com.cwuom.iseen.Adapter.CardHistoryAdapter;
@@ -156,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
     private final ArrayList<String> listener_url = new ArrayList<>();  // 监听地址列表
     private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;  // 图片选择器 (旧android也许不兼容，Android13支持)
     private String image_uri;  // 背景图uri地址
-    private final String API = "http://api.mrgnb.cn/API/qq_ark37.php?url=";   // API地址设置
+    private final String API = "https://ark.cwuom.love/get_card?title=%s&subtitle=%s&prompt=%s&cover=%s";   // API地址设置
 
     private final Handler handler = new CustomHandler(this);  // 创建handler
 
@@ -263,7 +260,9 @@ public class MainActivity extends AppCompatActivity {
             if (binding.switchHidePhp.isChecked()){
                 url = server+hidePath+"/"+id+".png";
             }
-            req_url = API+url+"&title="+title+"&subtitle="+subtitle+"&yx="+yx;
+//            req_url = API+url+"&title="+title+"&subtitle="+subtitle+"&yx="+yx;
+            req_url = String.format(API, title, subtitle, yx, url);
+            System.out.println(req_url);
             String cardListenerUrl = server+data_dir+"/"+id+".png.txt";
             if (binding.switchHidePhp.isChecked()){  // 开启了隐匿模式，查询地址会发生变化
                 cardListenerUrl = server+data_dir+"/"+id+".txt";
@@ -477,8 +476,7 @@ public class MainActivity extends AppCompatActivity {
                 file = cache;
                 fos.close();
                 is.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ignored) {
             }
         }
         assert file != null;
@@ -523,7 +521,7 @@ public class MainActivity extends AppCompatActivity {
                 TextView tv_more_options = v.findViewById(R.id.more_options);
 //                Button btn_del_all = v.findViewById(R.id.btn_del_all);
                 List<EntityCard> localCard = getLocalCardHistory();
-                if (localCard != null && localCard.size() > 0){
+                if (localCard != null && !localCard.isEmpty()){
                     tv_count.setText(getString(R.string.number_of_cards, Objects.requireNonNull(localCard).size()+""));
                     ArrayList<EntityCardHistory> list = entityCardToEntityCardHistory(localCard);
                     CardHistoryAdapter cardHistoryAdapter = new CardHistoryAdapter(list, MainActivity.this, count -> {
@@ -547,184 +545,109 @@ public class MainActivity extends AppCompatActivity {
                     tv_no_card.setVisibility(View.VISIBLE);
                 }
 
-                tv_more_options.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        PopupMenu popupMenu = new PopupMenu(MainActivity.this, v);
-                        popupMenu.getMenuInflater().inflate(R.menu.history_manage_menu, popupMenu.getMenu());
-                        popupMenu.setOnMenuItemClickListener(item -> {
-                            int id = item.getItemId();
-                            if (id == R.id.item_set_2fa_verify_url){
-                                new InputDialog("键入您的验证服务器地址", "请先输入验证服务器地址(格式: https://example.com/del.php?verify=)，点击‘好’后自动保存。请严格按照格式要求填写，错误的填写也许会造成闪退等预期之外的问题。", "好", "取消")
-                                        .setCancelable(false)
-                                        .setOkButton((baseDialog, v131, server) -> {
-                                            editor.putString("auth_server", server);
-                                            editor.apply();
-                                            return false;
-                                        })
-                                        .show();
-                            }
-                            if (id == R.id.item_del_all_on_server){
-                                new InputDialog("您需要先通过2FA验证", "默认您已长按此按钮并填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
-                                        .setCancelable(false)
-                                        .setOkButton((baseDialog, v12, code) -> {
-                                            String url = sharedPreferences.getString("auth_server", "");
-                                            if (!url.equals("")){
-                                                OkHttpClient client = new OkHttpClient();
-                                                Request request = new Request.Builder()
-                                                        .url(url+code)
-                                                        .build();
-                                                Call call = client.newCall(request);
-                                                call.enqueue(new Callback() {
-                                                    @Override
-                                                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                                                        if (e instanceof SocketTimeoutException){
-                                                            handler.sendEmptyMessage(HANDLER_MESSAGE_TIMEOUT);
-                                                        }
-                                                        if (e instanceof ConnectException){
-                                                            handler.sendEmptyMessage(HANDLER_MESSAGE_CONNECTION_ERR);
-                                                        }
+                tv_more_options.setOnClickListener(v14 -> {
+                    PopupMenu popupMenu = new PopupMenu(MainActivity.this, v14);
+                    popupMenu.getMenuInflater().inflate(R.menu.history_manage_menu, popupMenu.getMenu());
+                    popupMenu.setOnMenuItemClickListener(item -> {
+                        int id = item.getItemId();
+                        if (id == R.id.item_set_2fa_verify_url){
+                            new InputDialog("键入您的验证服务器地址", "请先输入验证服务器地址(格式: https://example.com/del.php?verify=)，点击‘好’后自动保存。请严格按照格式要求填写，错误的填写也许会造成闪退等预期之外的问题。", "好", "取消")
+                                    .setCancelable(false)
+                                    .setOkButton((baseDialog, v131, server) -> {
+                                        editor.putString("auth_server", server);
+                                        editor.apply();
+                                        return false;
+                                    })
+                                    .show();
+                        }
+                        if (id == R.id.item_del_all_on_server){
+                            new InputDialog("您需要先通过2FA验证", "默认您已长按此按钮并填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
+                                    .setCancelable(false)
+                                    .setOkButton((baseDialog, v12, code) -> {
+                                        String url = sharedPreferences.getString("auth_server", "");
+                                        if (!url.isEmpty()){
+                                            OkHttpClient client = new OkHttpClient();
+                                            Request request = new Request.Builder()
+                                                    .url(url+code)
+                                                    .build();
+                                            Call call = client.newCall(request);
+                                            call.enqueue(new Callback() {
+                                                @Override
+                                                public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                                                    if (e instanceof SocketTimeoutException){
+                                                        handler.sendEmptyMessage(HANDLER_MESSAGE_TIMEOUT);
                                                     }
-                                                    @Override
-                                                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                                                        res_2fa_callback = Objects.requireNonNull(response.body()).string();
-                                                        handler.sendEmptyMessage(HANDLER_MESSAGE_SERVER_REPLY);
+                                                    if (e instanceof ConnectException){
+                                                        handler.sendEmptyMessage(HANDLER_MESSAGE_CONNECTION_ERR);
                                                     }
-                                                });
-                                            } else {
-                                                UtilMethod.showDialog("无法建立连接", "验证服务器地址未配置！", MainActivity.this);
-                                            }
+                                                }
+                                                @Override
+                                                public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                                                    res_2fa_callback = Objects.requireNonNull(response.body()).string();
+                                                    handler.sendEmptyMessage(HANDLER_MESSAGE_SERVER_REPLY);
+                                                }
+                                            });
+                                        } else {
+                                            UtilMethod.showDialog("无法建立连接", "验证服务器地址未配置！", MainActivity.this);
+                                        }
 
-                                            return false;
-                                        })
-                                        .show();
-                            }
-                            if (id == R.id.item_del_all_on_local){
-                                new MaterialAlertDialogBuilder(v.getContext())
-                                        .setTitle("确认删除所有卡片么？")
-                                        .setMessage("删除所有卡片后在本地不可恢复，但服务器上的文件不会一并清除。您仍有权限可通过指定网页链接对其进行访问！")
-                                        .setNeutralButton("手滑了..", null)
-                                        .setPositiveButton("确认删除", (dialog1, which) -> {
-                                            cardDao.deleteAll();
-                                            tv_count.setText("");
-                                            rv_card_list.setAdapter(null);
-                                            tv_no_card.setVisibility(View.VISIBLE);
-                                        })
-                                        .show();
-                            }
-                            if (id == R.id.item_push_setup){
-                                BottomDialog.show("", "",
-                                        new OnBindView<BottomDialog>(R.layout.layout_notification_settings) {
-                                            @SuppressLint("SetTextI18n")
-                                            @Override
-                                            public void onBind(BottomDialog dialog, View v) {
-                                                EditText mEtInterval = v.findViewById(R.id.interval);
-                                                Button mBtnSave = v.findViewById(R.id.btn_save_and_apply);
-                                                MaterialSwitch mSwitchMaskTimeout = v.findViewById(R.id.switch_mask_request_timeout_notification);
-                                                MaterialSwitch mSwitchMaskConnectionErr = v.findViewById(R.id.switch_mask_request_err_notification);
-                                                mEtInterval.setText((req_interval / 1000) + "");
-                                                mSwitchMaskTimeout.setChecked(switch_MaskTimeout);
-                                                mSwitchMaskConnectionErr.setChecked(switch_MaskConnectionErr);
-                                                mBtnSave.setOnClickListener(v13 -> {
-                                                    try {
-                                                        req_interval = Integer.parseInt(String.valueOf(mEtInterval.getText())) * 1000;
-                                                        editor.putInt("req_interval", req_interval).apply();
-                                                    } catch (NumberFormatException e) {
-                                                        UtilMethod.showDialog("无法处理输入的数据", "请输入一个整数，单位秒。", MainActivity.this);
-                                                    }
-                                                });
+                                        return false;
+                                    })
+                                    .show();
+                        }
+                        if (id == R.id.item_del_all_on_local){
+                            new MaterialAlertDialogBuilder(v14.getContext())
+                                    .setTitle("确认删除所有卡片么？")
+                                    .setMessage("删除所有卡片后在本地不可恢复，但服务器上的文件不会一并清除。您仍有权限可通过指定网页链接对其进行访问！")
+                                    .setNeutralButton("手滑了..", null)
+                                    .setPositiveButton("确认删除", (dialog1, which) -> {
+                                        cardDao.deleteAll();
+                                        tv_count.setText("");
+                                        rv_card_list.setAdapter(null);
+                                        tv_no_card.setVisibility(View.VISIBLE);
+                                    })
+                                    .show();
+                        }
+                        if (id == R.id.item_push_setup){
+                            BottomDialog.show("", "",
+                                    new OnBindView<BottomDialog>(R.layout.layout_notification_settings) {
+                                        @SuppressLint("SetTextI18n")
+                                        @Override
+                                        public void onBind(BottomDialog dialog12, View v14) {
+                                            EditText mEtInterval = v14.findViewById(R.id.interval);
+                                            Button mBtnSave = v14.findViewById(R.id.btn_save_and_apply);
+                                            MaterialSwitch mSwitchMaskTimeout = v14.findViewById(R.id.switch_mask_request_timeout_notification);
+                                            MaterialSwitch mSwitchMaskConnectionErr = v14.findViewById(R.id.switch_mask_request_err_notification);
+                                            mEtInterval.setText((req_interval / 1000) + "");
+                                            mSwitchMaskTimeout.setChecked(switch_MaskTimeout);
+                                            mSwitchMaskConnectionErr.setChecked(switch_MaskConnectionErr);
+                                            mBtnSave.setOnClickListener(v13 -> {
+                                                try {
+                                                    req_interval = Integer.parseInt(String.valueOf(mEtInterval.getText())) * 1000;
+                                                    editor.putInt("req_interval", req_interval).apply();
+                                                } catch (NumberFormatException e) {
+                                                    UtilMethod.showDialog("无法处理输入的数据", "请输入一个整数，单位秒。", MainActivity.this);
+                                                }
+                                            });
 
-                                                mSwitchMaskConnectionErr.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                                                    switch_MaskConnectionErr = isChecked;
-                                                    editor.putBoolean("switchMaskConnectionErr", isChecked).apply();
-                                                });
+                                            mSwitchMaskConnectionErr.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                                switch_MaskConnectionErr = isChecked;
+                                                editor.putBoolean("switchMaskConnectionErr", isChecked).apply();
+                                            });
 
-                                                mSwitchMaskTimeout.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                                                    switch_MaskTimeout = isChecked;
-                                                    editor.putBoolean("switchMaskTimeout", isChecked).apply();
-                                                });
-                                            }
-                                        });
-//                                new InputDialog("输入请求间隔(单位秒)", "输入'30'就是每隔30秒请求一次API，输入'10'就是每隔10秒请求一次API，以此类推...", "好", "取消")
-//                                        .setCancelable(false)
-//                                        .setOkButton((baseDialog, v131, time) -> {
-//                                            try {
-//                                                req_interval = Integer.parseInt(time) * 1000;
-//                                                editor.putInt("req_interval", req_interval);
-//                                                editor.apply();
-//                                            } catch (NumberFormatException e) {
-//                                                UtilMethod.showDialog("无法处理输入的数据", "请输入一个整数，单位秒。", MainActivity.this);
-//                                                return true;
-//                                            }
-//
-//                                            return false;
-//                                        })
-//                                        .show();
-                                return true;
-                            }
-                            return false;
-                        });
-                        popupMenu.show();
-                    }
+                                            mSwitchMaskTimeout.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                                switch_MaskTimeout = isChecked;
+                                                editor.putBoolean("switchMaskTimeout", isChecked).apply();
+                                            });
+                                        }
+                                    });
+                            return true;
+                        }
+                        return false;
+                    });
+                    popupMenu.show();
                 });
 
-//                v.findViewById(R.id.btn_del_all_local).setOnClickListener(v15 -> new MaterialAlertDialogBuilder(v15.getContext())
-//                        .setTitle("确认删除所有卡片么？")
-//                        .setMessage("删除所有卡片后在本地不可恢复，但服务器上的文件不会一并清除。您仍有权限可通过指定网页链接对其进行访问！")
-//                        .setNeutralButton("手滑了..", null)
-//                        .setPositiveButton("确认删除", (dialog1, which) -> {
-//                            cardDao.deleteAll();
-//                            tv_count.setText("");
-//                            rv_card_list.setAdapter(null);
-//                            tv_no_card.setVisibility(View.VISIBLE);
-//                        })
-//                        .show());
-//
-//                btn_del_all.setOnClickListener(v14 -> new InputDialog("您需要先通过2FA验证", "默认您已长按此按钮并填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
-//                        .setCancelable(false)
-//                        .setOkButton((baseDialog, v12, code) -> {
-//                            String url = sharedPreferences.getString("auth_server", "");
-//                            if (!url.equals("")){
-//                                OkHttpClient client = new OkHttpClient();
-//                                Request request = new Request.Builder()
-//                                        .url(url+code)
-//                                        .build();
-//                                Call call = client.newCall(request);
-//                                call.enqueue(new Callback() {
-//                                    @Override
-//                                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
-//                                        if (e instanceof SocketTimeoutException){
-//                                            handler.sendEmptyMessage(HANDLER_MESSAGE_TIMEOUT);
-//                                        }
-//                                        if (e instanceof ConnectException){
-//                                            handler.sendEmptyMessage(HANDLER_MESSAGE_CONNECTION_ERR);
-//                                        }
-//                                    }
-//                                    @Override
-//                                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-//                                        res_2fa_callback = Objects.requireNonNull(response.body()).string();
-//                                        handler.sendEmptyMessage(HANDLER_MESSAGE_SERVER_REPLY);
-//                                    }
-//                                });
-//                            } else {
-//                                UtilMethod.showDialog("无法建立连接", "验证服务器地址未配置！", MainActivity.this);
-//                            }
-//
-//                            return false;
-//                        })
-//                        .show());
-//
-//                btn_del_all.setOnLongClickListener(v13 -> {
-//                    new InputDialog("键入您的验证服务器地址", "请先输入验证服务器地址(格式: https://example.com/del.php?verify=)，点击‘好’后自动保存。请严格按照格式要求填写，错误的填写也许会造成闪退等预期之外的问题。", "好", "取消")
-//                            .setCancelable(false)
-//                            .setOkButton((baseDialog, v131, server) -> {
-//                                editor.putString("auth_server", server);
-//                                editor.apply();
-//                                return false;
-//                            })
-//                            .show();
-//                    return true;
-//                });
             }
         }).show();
     }
@@ -866,7 +789,6 @@ public class MainActivity extends AppCompatActivity {
                     throwInMethod();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    e.printStackTrace();
                 }
             }
 
@@ -894,11 +816,11 @@ public class MainActivity extends AppCompatActivity {
             EntityCardHistory entityCardHistory = new EntityCardHistory();
             long cardId = card.getCardID();
             String cardHeadTitle = card.getCardTitle();
-            if (cardHeadTitle.equals("")){
+            if (cardHeadTitle.isEmpty()){
                 cardHeadTitle = "No title";
             }
             String cardHeadSubtitle = card.getCardSubtitle();
-            if (cardHeadSubtitle.equals("")){
+            if (cardHeadSubtitle.isEmpty()){
                 cardHeadSubtitle = "No subtitle";
             }
             String cardContentTitle = getString(R.string.item_card_title);
@@ -927,7 +849,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private List<EntityCard> getLocalCardHistory(){
         List<EntityCard> allCard = cardDao.getAllCard();
-        if (allCard.size() > 0){
+        if (!allCard.isEmpty()){
             return allCard;
         }
         return null;
@@ -935,7 +857,6 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      判断卡片监听地址是否重复
-     @param url
      @return 是否重复
      */
     boolean JudgmentListenerRepetition(String url){
@@ -950,7 +871,6 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      获取卡片代码，需先请求API
-     * @param req_url
      */
     void getCardData(String req_url){
         new Thread(() -> {
@@ -965,9 +885,7 @@ public class MainActivity extends AppCompatActivity {
                     card_data = inputStreamToString(inputStream);
                     handler.sendEmptyMessage(HANDLER_MESSAGE_SHOW_CARD_DATA);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception ignored) {}
         }).start();
     }
 
@@ -1014,7 +932,7 @@ public class MainActivity extends AppCompatActivity {
             hideDangerousInput();
         }
 
-        if (image_uri != null && !image_uri.equals("")){
+        if (image_uri != null && !image_uri.isEmpty()){
             binding.background.setImageURI(Uri.parse(image_uri));
         }
         if (!switch_show_background){
@@ -1165,7 +1083,7 @@ public class MainActivity extends AppCompatActivity {
                 UtilMethod.showDialog("监听线程已终止", "如果您没有手动关闭监听器出现此弹窗，请反馈。如果您手动关闭监听器，请忽略此弹窗。", MainActivity.this);
             }
             if (msg.what == HANDLER_MESSAGE_QUERY_IP_SUCCESS) {
-                JSONObject jsonObject = null;
+                JSONObject jsonObject;
                 try {
                     jsonObject = new JSONObject(getIPQueryRes_callback).getJSONObject("data");
                     String location = jsonObject.getString("location");
@@ -1182,12 +1100,7 @@ public class MainActivity extends AppCompatActivity {
                     new MaterialAlertDialogBuilder(MainActivity.this)
                             .setTitle(queryIP+"的查询结果")
                             .setMessage(res)
-                            .setNegativeButton("复制结果", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    copyToClipboard(res);
-                                }
-                            })
+                            .setNegativeButton("复制结果", (dialog, which) -> copyToClipboard(res))
                             .setPositiveButton("好", null).show();
                 } catch (JSONException e) {
                     throw new RuntimeException(e);
