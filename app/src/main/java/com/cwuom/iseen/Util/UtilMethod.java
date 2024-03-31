@@ -13,9 +13,9 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.room.Room;
-import androidx.room.TransactionExecutor;
 
 import com.cwuom.iseen.InitDataBase.InitCardDataBase;
+import com.cwuom.iseen.InitDataBase.InitUserDataBase;
 import com.cwuom.iseen.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 
 /*
  * This software is provided for educational purposes only and should not be used for commercial or illegal activities.
@@ -55,6 +56,7 @@ import java.nio.charset.StandardCharsets;
 public class UtilMethod {
 
     public static InitCardDataBase baseRoomDatabase;
+    public static InitUserDataBase baseUserRoomDatabase;
 
     public static InitCardDataBase getInstance(Context context) {
         if (baseRoomDatabase == null) {
@@ -62,6 +64,13 @@ public class UtilMethod {
                     "history_database.db").allowMainThreadQueries().build();
         }
         return baseRoomDatabase;
+    }
+
+    public static InitUserDataBase getInstance_user(Context context) {
+        if (baseUserRoomDatabase == null) {
+            baseUserRoomDatabase = Room.databaseBuilder(context, InitUserDataBase.class, "bilibili_user_database.db").allowMainThreadQueries().build();
+        }
+        return baseUserRoomDatabase;
     }
 
     public static String inputStreamToString(InputStream inputStream) {
@@ -78,9 +87,7 @@ public class UtilMethod {
             bufferedReader.close();
             inputStreamReader.close();
             inputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException ignored) {}
         return buffer.toString();
     }
 
@@ -146,5 +153,11 @@ public class UtilMethod {
         }
         return text;
     }
+
+    public static String timeToFormat(long time) {
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(time);
+    }
+
 
 }

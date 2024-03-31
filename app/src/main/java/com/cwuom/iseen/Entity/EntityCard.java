@@ -38,8 +38,8 @@ public class EntityCard {
     String cardTitle;
     @ColumnInfo(name = "card_subtitle")
     String cardSubtitle;
-    @ColumnInfo(name = "card_url")
-    String cardUrl;
+    @ColumnInfo(name = "card_filename")
+    String cardFilename;
     @ColumnInfo(name = "card_data")
     String cardData;
     @ColumnInfo(name = "card_listener_url")
@@ -49,10 +49,10 @@ public class EntityCard {
     @ColumnInfo(name = "card_note")
     String cardNote;
 
-    public EntityCard(String cardTitle, String cardSubtitle, String cardUrl, String cardData, String cardListenerUrl, String cardCreateTime, String cardNote) {
+    public EntityCard(String cardTitle, String cardSubtitle, String cardFilename, String cardData, String cardListenerUrl, String cardCreateTime, String cardNote) {
         this.cardTitle = cardTitle;
         this.cardSubtitle = cardSubtitle;
-        this.cardUrl = cardUrl;
+        this.cardFilename = cardFilename;
         this.cardData = cardData;
         this.cardListenerUrl = cardListenerUrl;
         this.cardCreateTime = cardCreateTime;
@@ -83,12 +83,12 @@ public class EntityCard {
         this.cardSubtitle = cardSubtitle;
     }
 
-    public String getCardUrl() {
-        return cardUrl;
+    public String getCardFilename() {
+        return cardFilename;
     }
 
-    public void setCardUrl(String cardUrl) {
-        this.cardUrl = cardUrl;
+    public void setCardFilename(String cardFilename) {
+        this.cardFilename = cardFilename;
     }
 
     public String getCardData() {

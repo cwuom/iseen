@@ -1,16 +1,11 @@
 package com.cwuom.iseen.Util;
 
 import android.annotation.SuppressLint;
-import android.app.AppOpsManager;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Objects;
 
 /*
  * This software is provided for educational purposes only and should not be used for commercial or illegal activities.
@@ -49,9 +44,9 @@ public class NotificationUtil {
             sServiceField.setAccessible(true);
             Object sService = sServiceField.invoke(notificationManager);
 
-            Method method = sService.getClass().getDeclaredMethod("areNotificationsEnabledForPackage"
-                    , String.class, Integer.TYPE);
-            method.setAccessible(true);
+            Method method = sService != null ? sService.getClass().getDeclaredMethod("areNotificationsEnabledForPackage"
+                    , String.class, Integer.TYPE) : null;
+            Objects.requireNonNull(method).setAccessible(true);
             return (boolean) method.invoke(sService, pkg, uid);
         } catch (Exception e) {
             return true;

@@ -1,7 +1,6 @@
 package com.cwuom.iseen.Adapter;
 
 import static android.content.Context.MODE_PRIVATE;
-import static androidx.core.content.ContextCompat.getString;
 import static com.cwuom.iseen.Util.UtilMethod.showDialog;
 
 import android.annotation.SuppressLint;
@@ -16,20 +15,21 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.cwuom.iseen.Dao.CardDao;
+import com.cwuom.iseen.Dao.UserDao;
 import com.cwuom.iseen.Entity.EntityCard;
 import com.cwuom.iseen.Entity.EntityCardHistory;
+import com.cwuom.iseen.Entity.EntityUser;
 import com.cwuom.iseen.InitDataBase.InitCardDataBase;
+import com.cwuom.iseen.InitDataBase.InitUserDataBase;
 import com.cwuom.iseen.R;
 import com.cwuom.iseen.Util.UtilMethod;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.kongzue.dialogx.dialogs.BottomMenu;
 import com.kongzue.dialogx.interfaces.BaseDialog;
 import com.kongzue.dialogx.interfaces.OnIconChangeCallBack;
-import com.kongzue.dialogx.interfaces.OnMenuItemClickListener;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -39,10 +39,13 @@ import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Objects;
 
+import io.noties.markwon.Markwon;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /*
@@ -78,11 +81,13 @@ public class CardHistoryAdapter extends RecyclerView.Adapter<CardHistoryAdapter.
     final Handler handler = new Handler();
 
     InitCardDataBase initCardDataBase;
+    InitUserDataBase initUserDataBase;
     CardDao cardDao;
     CountListen countListen;
     ActionListen actionListen;
     SharedPreferences sharedPreferences;
     SharedPreferences.Editor editor;
+    UserDao userDao;
 
     public CardHistoryAdapter(ArrayList<EntityCardHistory> list, Context context, CountListen countListen, ActionListen actionListen) {
         this.list = list;
@@ -104,11 +109,16 @@ public class CardHistoryAdapter extends RecyclerView.Adapter<CardHistoryAdapter.
     public void onBindViewHolder(@NonNull CardHistoryAdapter.ViewHolder holder, @SuppressLint("RecyclerView") int position) {
         sharedPreferences = context.getSharedPreferences("config", MODE_PRIVATE);
         editor = sharedPreferences.edit();
+        initUserDataBase = UtilMethod.getInstance_user(context.getApplicationContext());
+
+        userDao = initUserDataBase.userDao();
+
         if (position == holder.getLayoutPosition()){
             holder.tv_card_head_title.setText(list.get(position).getCardHeadTitle());
             holder.tv_card_head_sub.setText(list.get(position).getCardHeadSubtitle());
             holder.tv_card_content_title.setText(list.get(position).getCardNote());
-            holder.tv_card_content_callback.setText(list.get(position).getCardContentCallback());
+            final Markwon markwon = Markwon.create(context);
+            markwon.setMarkdown(holder.tv_card_content_callback, list.get(position).getCardContentCallback());
             holder.tv_card_create_time.setText(list.get(position).getCardCreateTime());
 
             holder.delete.setOnClickListener(v -> new MaterialAlertDialogBuilder(v.getContext())
@@ -156,18 +166,6 @@ public class CardHistoryAdapter extends RecyclerView.Adapter<CardHistoryAdapter.
                 public boolean onLongClick(View v) {
                     int pos = holder.getLayoutPosition();
                     EntityCard entityCard = cardDao.getCardByID(list.get(pos).getHistoryCardId());
-//                    PopupMenu popupMenu = new PopupMenu(context, v);
-//                    popupMenu.getMenuInflater().inflate(R.menu.bg_setting_menu, popupMenu.getMenu());
-//                    popupMenu.setOnMenuItemClickListener(item -> {
-//                        int id = item.getItemId();
-//                        if (id == R.id.item_use_default_background){
-//                        }
-//                        if (id == R.id.item_choose_background){
-//
-//                        }
-//                        return false;
-//                    });
-//                    popupMenu.show();
                     BottomMenu.show(new String[]{"复制全部内容", "解析内容(复制部分内容)"})
                             .setOnIconChangeCallBack(new OnIconChangeCallBack(true) {
                                 @Override
@@ -194,17 +192,23 @@ public class CardHistoryAdapter extends RecyclerView.Adapter<CardHistoryAdapter.
     @SuppressLint("RestrictedApi")
     private void refreshCard() {
         EntityCard entityCard = cardDao.getCardByID(list.get(refreshPos).getHistoryCardId());
-//        new MaterialAlertDialogBuilder(context)
-//                .setTitle("正在等待响应！")
-//                .setMessage("请不要重复点击，耐心等待回调。")
-//                .setPositiveButton("好", null)
-//                .show();
-//        AlertDialog dialog = showDialog("正在等待响应！", "请不要重复点击，耐心等待回调。当服务器响应时，此窗口会自动关闭！", context);
+
+        String userCookies = "no cookies";
+        if (!userDao.getAllUser().isEmpty()){
+            EntityUser entityUser = userDao.getUserByUserIsLogin(true);
+            userCookies = entityUser.getUserCookies();
+        }
 
         OkHttpClient client = new OkHttpClient();
+        RequestBody body = new FormBody.Builder()
+                .add("cookies", userCookies)  // 这里添加你的POST参数
+                .build();
+
         Request request = new Request.Builder()
                 .url(entityCard.getCardListenerUrl())
+                .post(body)
                 .build();
+
         Call call = client.newCall(request);
 
         actionListen.actionListen(-1, null, null, 0);

@@ -37,6 +37,7 @@ android {
 }
 
 dependencies {
+    implementation 'androidx.activity:activity:1.8.2'
     constraints {
         add("implementation", "org.jetbrains.kotlin:kotlin-stdlib-jdk7") {
             version {
@@ -65,11 +66,22 @@ dependencies {
 
     // DialogX
     implementation "com.kongzue.dialogx:DialogX:${dialogx_version}"
+    implementation "com.kongzue.dialogx.style:DialogXIOSStyle:${dialogx_version}"
 
     // material you
-    implementation 'com.google.android.material:material:1.12.0-alpha03'
+    implementation 'com.google.android.material:material:1.12.0-beta01'
 
     // okhttp3
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 
+    // refresh
+    implementation 'androidx.appcompat:appcompat:1.6.1'                 //必须 1.0.0 以上
+    implementation  'io.github.scwang90:refresh-layout-kernel:2.1.0'      //核心必须依赖
+    implementation  'io.github.scwang90:refresh-header-classics:2.1.0'    //经典刷新头
+
+    // glide
+    implementation 'com.github.bumptech.glide:glide:4.9.0'
+
+    // 富文本渲染
+    implementation "io.noties.markwon:core:4.6.2"
 }
