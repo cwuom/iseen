@@ -2,11 +2,8 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="my_light_primary">#474F7A</color>
-
-    <color name="colorPrimary">@color/my_light_primary</color><!--首要颜色-->
-    <color name="colorPrimaryDark">@color/transparent</color><!--首要颜色暗色-->
-    <color name="colorAccent">#FF4081</color><!--色彩强调-->
+    <color name="light_primary">#474F7A</color>
+    <color name="light_primary_background">#25474F7A</color>
 
     <color name="snow">#fffafa</color><!--雪白色 -->
     <color name="floralwhite">#fffaf0</color><!--花白色 -->
@@ -145,5 +142,17 @@
     <color name="darkviolet">#9400d3</color><!--暗紫罗兰色 -->
     <color name="mediumorchid">#ba55d3</color><!--中粉紫色 -->
     <color name="transparent">#00000000</color><!--透明-->
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
     <color name="gray">#51000000</color>
+
+
+    <color name="seed">#6750A4</color>
+    <color name="md_theme_light_primary">#6750A4</color>
+    <color name="md_theme_light_onPrimary">#FFFFFF</color>
+    <color name="md_theme_light_primaryContainer">#EADDFF</color>
+    <color name="md_theme_light_onPrimaryContainer">#21005D</color>
+    <color name="md_theme_light_secondary">#625B71</color>
+    <color name="md_theme_light_onSecondary">#FFFFFF</color>
+    <color name="md_theme_light_secondaryContainer">#E8DEF8</color>
 </resources>

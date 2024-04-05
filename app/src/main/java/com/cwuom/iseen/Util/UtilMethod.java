@@ -2,6 +2,8 @@ package com.cwuom.iseen.Util;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Color;
 import android.view.Gravity;
@@ -157,6 +159,16 @@ public class UtilMethod {
     public static String timeToFormat(long time) {
         @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(time);
+    }
+
+    /**
+     * 复制内容到剪贴板
+     * @param text 需要复制的内容
+     */
+    public static void copyToClipboard(String text, Context context) {
+        ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData mClipData = ClipData.newPlainText("Label", text);
+        cm.setPrimaryClip(mClipData);
     }
 
 

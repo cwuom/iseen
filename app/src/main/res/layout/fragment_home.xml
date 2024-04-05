@@ -15,7 +15,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:src="@drawable/neri"
-            android:scaleType="centerCrop">
+            android:scaleType="centerCrop"
+            android:importantForAccessibility="no">
         </ImageView>
 
 
@@ -339,13 +340,6 @@
                             android:checked="true"
                             android:text="@string/hide_mode_switch"/>
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switch_auto_update_uuid"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:checked="true"
-                            android:text="@string/auto_update_uuid"/>
-
                         <com.google.android.material.textfield.TextInputLayout
                             android:id="@+id/textField_hide_path"
                             android:layout_width="match_parent"
@@ -362,6 +356,13 @@
                                 />
 
                         </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_auto_update_uuid"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:checked="true"
+                            android:text="@string/auto_update_uuid"/>
 
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switch_hide_edit"

@@ -16,7 +16,7 @@ import android.webkit.CookieManager;
 import com.cwuom.iseen.Dao.UserDao;
 import com.cwuom.iseen.Entity.EntityUser;
 import com.cwuom.iseen.InitDataBase.InitUserDataBase;
-import com.cwuom.iseen.Util.ArkAPIReq;
+import com.cwuom.iseen.Util.API.Ark.ArkAPIReq;
 import com.cwuom.iseen.Util.UtilMethod;
 import com.kongzue.dialogx.DialogX;
 import com.kongzue.dialogx.dialogs.MessageDialog;
@@ -125,7 +125,7 @@ public class LoginActivity extends AppCompatActivity {
                     String userCoins = jsonObject_userinfo.optString("coins");
                     String userBirthday = jsonObject_userinfo.optString("birthday");
                     int userFollows = jsonObject_userinfo.optInt("friend");
-                    String ark_coins = ArkAPIReq.getArkCoinsByMid(userUID, "https://api.cwuom.love/coins_query.php?mid=");
+                    String ark_coins = ArkAPIReq.getArkCoinsByMid(userUID);
 
                     userDao.insertUser(new EntityUser(userUID, userName, userImageUrl, userRegTime, userSign, userCoins, userBirthday, ark_coins, userFollows, cookies, true));
                 } catch (JSONException | IOException e){

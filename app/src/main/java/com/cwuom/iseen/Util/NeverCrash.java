@@ -4,8 +4,6 @@ import android.app.Application;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
-
 /**
  * 全局崩溃拦截
  * ----------------------
@@ -72,7 +70,7 @@ public class NeverCrash {
                     Looper.loop();
                 } catch (Throwable e) {
                     if (isDebugMode()) {
-                        Log.e(TAG, "未捕获的主线程异常行为", e);;
+                        Log.e(TAG, "未捕获的主线程异常行为", e);
                     }
                     getMainCrashHandler().mainException(Looper.getMainLooper().getThread(), e);
                 }

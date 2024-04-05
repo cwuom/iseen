@@ -20,4 +20,5 @@
         app:itemTextAppearanceActive="@color/black"
         app:menu="@menu/bottom_navigation_menu" />
 
+
 </LinearLayout>

@@ -46,17 +46,16 @@ public class NavigationActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityNavigationBinding.inflate(getLayoutInflater());
-
-        initFragments();
-        setupBottomNavigation();
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-//            configureStatusBarBelow();
-//        } else{
-//            transparentNavigationBar(getWindow());
-//        }
-        transparentNavigationBar(getWindow());
         setContentView(binding.getRoot());
-        changeFragment(null, homeFragment);
+
+        if (savedInstanceState == null) {
+            initFragments();
+        } else {
+            recoverFragments();
+        }
+
+        setupBottomNavigation();
+        transparentNavigationBar(getWindow());
     }
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void configureStatusBarBelow() {
@@ -90,11 +89,21 @@ public class NavigationActivity extends AppCompatActivity {
 
 
     private void initFragments() {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
         homeFragment = new HomeFragment();
         cardGeneratorFragment = new CardGeneratorFragment();
         profileFragment = new ProfileFragment();
-    }
 
+        fragmentTransaction.add(R.id.navFragment, homeFragment, HomeFragment.class.getSimpleName());
+        fragmentTransaction.add(R.id.navFragment, cardGeneratorFragment, CardGeneratorFragment.class.getSimpleName()).hide(cardGeneratorFragment);
+        fragmentTransaction.add(R.id.navFragment, profileFragment, ProfileFragment.class.getSimpleName()).hide(profileFragment);
+
+        fragmentTransaction.commit();
+
+        currentFragment = homeFragment;
+    }
     private void setupBottomNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -109,28 +118,35 @@ public class NavigationActivity extends AppCompatActivity {
         });
     }
 
-    private void changeFragment(Fragment from, Fragment to) {
-        if (to == currentFragment) {
-            return;
-        }
+    private void recoverFragments() {
+        FragmentManager fragmentManager = getSupportFragmentManager();
 
+        homeFragment = (HomeFragment) fragmentManager.findFragmentByTag(HomeFragment.class.getSimpleName());
+        cardGeneratorFragment = (CardGeneratorFragment) fragmentManager.findFragmentByTag(CardGeneratorFragment.class.getSimpleName());
+        profileFragment = (ProfileFragment) fragmentManager.findFragmentByTag(ProfileFragment.class.getSimpleName());
+
+        if (homeFragment != null) {
+            currentFragment = homeFragment;
+        } else if (cardGeneratorFragment != null) {
+            currentFragment = cardGeneratorFragment;
+        } else if (profileFragment != null) {
+            currentFragment = profileFragment;
+        }
+    }
+
+    private void changeFragment(Fragment from, Fragment to) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
 
-        String tag = to.getClass().getSimpleName();
-        Fragment toFragment = fragmentManager.findFragmentByTag(tag);
+        if (to != currentFragment) {
+            fragmentTransaction.show(to);
+            if (from != null && from.isAdded()) {
+                fragmentTransaction.hide(from);
+            }
 
-        if (toFragment == null) {
-            fragmentTransaction.add(R.id.navFragment, to, tag);
-        } else {
-            fragmentTransaction.show(toFragment);
+            fragmentTransaction.commit();
+            currentFragment = to;
         }
-        if (from != null && from.isAdded() && from != to) {
-            fragmentTransaction.hide(from);
-        }
-
-        fragmentTransaction.commit();
-        currentFragment = to;
     }
 
 }

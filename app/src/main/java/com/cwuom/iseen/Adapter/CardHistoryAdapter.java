@@ -7,6 +7,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,32 +22,21 @@ import com.cwuom.iseen.Dao.CardDao;
 import com.cwuom.iseen.Dao.UserDao;
 import com.cwuom.iseen.Entity.EntityCard;
 import com.cwuom.iseen.Entity.EntityCardHistory;
-import com.cwuom.iseen.Entity.EntityUser;
 import com.cwuom.iseen.InitDataBase.InitCardDataBase;
 import com.cwuom.iseen.InitDataBase.InitUserDataBase;
 import com.cwuom.iseen.R;
+import com.cwuom.iseen.Util.API.Ark.ArkAPIReq;
+import com.cwuom.iseen.Util.API.Ark.ArkApiCallback;
 import com.cwuom.iseen.Util.UtilMethod;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.kongzue.dialogx.dialogs.BottomMenu;
 import com.kongzue.dialogx.interfaces.BaseDialog;
 import com.kongzue.dialogx.interfaces.OnIconChangeCallBack;
-
-import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
-import java.util.Objects;
 
 import io.noties.markwon.Markwon;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 /*
  * This software is provided for educational purposes only and should not be used for commercial or illegal activities.
@@ -193,43 +183,33 @@ public class CardHistoryAdapter extends RecyclerView.Adapter<CardHistoryAdapter.
     private void refreshCard() {
         EntityCard entityCard = cardDao.getCardByID(list.get(refreshPos).getHistoryCardId());
 
-        String userCookies = "no cookies";
-        if (!userDao.getAllUser().isEmpty()){
-            EntityUser entityUser = userDao.getUserByUserIsLogin(true);
-            userCookies = entityUser.getUserCookies();
-        }
+        ArkAPIReq.getArkListenerReturn(
+                entityCard.getCardListenerUrl(),
+                context.getApplicationContext(),
+                true,
+                new ArkApiCallback() {
+                    @Override
+                    public void onSuccess(String result) {
+                        Log.e("OkHttp GET请求成功", result);
+                        actionListen.actionListen(-2, null, null, 0);
+                        changeItemCallback(result);
+                    }
 
-        OkHttpClient client = new OkHttpClient();
-        RequestBody body = new FormBody.Builder()
-                .add("cookies", userCookies)  // 这里添加你的POST参数
-                .build();
-
-        Request request = new Request.Builder()
-                .url(entityCard.getCardListenerUrl())
-                .post(body)
-                .build();
-
-        Call call = client.newCall(request);
-
+                    @Override
+                    public void onFailure(Exception e) {
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            if (e instanceof SocketTimeoutException) {
+                                showDialog("请求超时！", "无法与服务器建立连接，请检查网络后重试！", context);
+                            } else if (e instanceof ConnectException) {
+                                showDialog("请求连接异常！", "无法正确读取通讯数据，请检查网络后重试！", context);
+                            } else {
+                                showDialog("请求错误！", e.getMessage(), context);
+                            }
+                        });
+                    }
+                }
+        );
         actionListen.actionListen(-1, null, null, 0);
-        call.enqueue(new Callback() {
-            @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                if (e instanceof SocketTimeoutException){
-                    showDialog("请求超时！", "无法与服务器建立连接，请检查网络后重试！", context);
-                }
-                if (e instanceof ConnectException){
-                    showDialog("请求连接异常！", "无法正确读取通讯数据，请检查网络后重试！", context);
-                }
-            }
-            @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                String res = Objects.requireNonNull(response.body()).string();
-                Log.e("OkHttp GET请求成功", "onFailure: "+res);
-                actionListen.actionListen(-2, null, null, 0);
-                changeItemCallback(res);
-            }
-        });
     }
 
     void changeItemCallback(String res){

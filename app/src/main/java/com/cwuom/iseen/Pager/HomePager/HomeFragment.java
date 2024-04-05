@@ -4,6 +4,7 @@ import static android.content.Context.MODE_PRIVATE;
 import static android.content.Context.NOTIFICATION_SERVICE;
 import static com.cwuom.iseen.Util.UtilMethod.ShowLoadingSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.ShowSnackbar;
+import static com.cwuom.iseen.Util.UtilMethod.copyToClipboard;
 import static com.cwuom.iseen.Util.UtilMethod.inputStreamToString;
 import static com.cwuom.iseen.Util.UtilMethod.replaceLastNewline;
 import static com.kongzue.dialogx.impl.ActivityLifecycleImpl.getApplicationContext;
@@ -12,24 +13,12 @@ import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.PickVisualMediaRequest;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.appcompat.widget.PopupMenu;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.os.FileUtils;
 import android.os.Handler;
 import android.os.Looper;
@@ -48,6 +37,15 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.cwuom.iseen.Adapter.CardHistoryAdapter;
 import com.cwuom.iseen.Dao.CardDao;
 import com.cwuom.iseen.Entity.EntityCallbackContent;
@@ -55,6 +53,8 @@ import com.cwuom.iseen.Entity.EntityCard;
 import com.cwuom.iseen.Entity.EntityCardHistory;
 import com.cwuom.iseen.InitDataBase.InitCardDataBase;
 import com.cwuom.iseen.R;
+import com.cwuom.iseen.Util.API.Ark.ArkAPIReq;
+import com.cwuom.iseen.Util.API.Ark.ArkApiCallback;
 import com.cwuom.iseen.Util.NeverCrash;
 import com.cwuom.iseen.Util.NotificationUtil;
 import com.cwuom.iseen.Util.UtilMethod;
@@ -169,7 +169,6 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         binding = FragmentHomeBinding.inflate(getLayoutInflater());
         initMethod();
-        Log.d("HomeFragment", "onCreateView is called");
 
         return binding.getRoot();
     }
@@ -273,8 +272,6 @@ public class HomeFragment extends Fragment {
             if (!img.isEmpty()){
                 req_url += "/" + Base64.encodeToString(img.getBytes(), Base64.NO_WRAP);
             }
-
-            System.out.println(req_url);
 
             String cardListenerUrl = String.format(API_GET_RES, id+".png.txt");
             if (binding.switchHidePhp.isChecked()){  // 开启了隐匿模式，查询地址会发生变化
@@ -658,7 +655,7 @@ public class HomeFragment extends Fragment {
     void doAction(int action, EntityCard entityCard, EntityCardHistory entityCardHistory, int pos, RecyclerView rv_card_list){
         switch (action){
             case 0: // 复制卡片代码
-                copyToClipboard(entityCard.getCardData());
+                copyToClipboard(entityCard.getCardData(), requireActivity());
                 break;
             case 1: // 跳转到监听地址
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(entityCard.getCardListenerUrl()));
@@ -708,7 +705,7 @@ public class HomeFragment extends Fragment {
                 if (snackbar != null) snackbar.dismiss();
                 break;
             case -3:
-                copyToClipboard(entityCardHistory.getCardContentCallback());
+                copyToClipboard(entityCardHistory.getCardContentCallback(), requireActivity());
                 break;
             case -4:
                 String contents = replaceLastNewline(entityCardHistory.getCardContentCallback(), "");
@@ -736,16 +733,16 @@ public class HomeFragment extends Fragment {
                             BottomMenu.show(new String[] {"点击下方信息进行复制", entity.getTime(), entity.getIp(), entity.getRegion(), entity.getUserAgent(), "-----------", "使用其它API查询此IP"})
                                     .setOnMenuItemClickListener((dialog1, text1, index1) -> {
                                         if (text1 == entity.getIp()){
-                                            copyToClipboard(entity.getIp());
+                                            copyToClipboard(entity.getIp(), requireActivity());
                                         }
                                         if (text1 == entity.getTime()){
-                                            copyToClipboard(entity.getTime());
+                                            copyToClipboard(entity.getTime(), requireActivity());
                                         }
                                         if (text1 == entity.getRegion()){
-                                            copyToClipboard(entity.getRegion());
+                                            copyToClipboard(entity.getRegion(), requireActivity());
                                         }
                                         if (text1 == entity.getUserAgent()){
-                                            copyToClipboard(entity.getUserAgent());
+                                            copyToClipboard(entity.getUserAgent(), requireActivity());
                                         }
                                         if (text1 == "使用其它API查询此IP"){
                                             getIPQueryRes(entity.getIp());
@@ -759,6 +756,7 @@ public class HomeFragment extends Fragment {
 
         }
     }
+
     /**
      * 处理卡片监听事件
      * @param card 卡片实体类
@@ -767,30 +765,53 @@ public class HomeFragment extends Fragment {
         Thread thread = new Thread(() -> {
             final String[] temp = {""};
             while (!Thread.currentThread().isInterrupted()){
-                OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder()
-                        .url(card.getCardListenerUrl())
-                        .build();
-                Call call = client.newCall(request);
-                call.enqueue(new Callback() {
-                    @Override
-                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                        if (e instanceof SocketTimeoutException){
-                            push_listen_res("监听超时", "监听地址连接超时，请检查网络设置...", 1);
+                ArkAPIReq.getArkListenerReturn(
+                        card.getCardListenerUrl(),
+                        getApplicationContext(),
+                        true,
+                        new ArkApiCallback() {
+                            @Override
+                            public void onSuccess(String result) {
+                                String contents = replaceLastNewline(result, "");
+                                ArrayList<EntityCallbackContent> list = new ArrayList<>();
+                                for (String content : contents.split("\n\n")){
+                                    String[] res = content.split("\n");
+                                    for (int i = 0; i < res.length; i++) {
+                                        if (res[i].startsWith("## ")) {
+                                            res[i] = res[i].substring(3);
+                                        } else if (res[i].startsWith("- ")) {
+                                            res[i] = res[i].substring(2);
+                                        }
+                                    }
+                                    if (res.length == 4){
+                                        list.add(new EntityCallbackContent(res[0], res[1], res[2], res[3]));
+                                    }
+                                }
+                                result = "";
+                                for (EntityCallbackContent content : list){
+                                    result = content.getIp() + " | " + content.getRegion() + "\n";
+                                }
+
+                                if (!result.equals(temp[0])){
+                                    push_listen_res(card.getCardNote(), result.replace(temp[0], ""), 0);
+                                }
+                                temp[0] = result;
+                            }
+
+                            @Override
+                            public void onFailure(Exception e) {
+                                new Handler(Looper.getMainLooper()).post(() -> {
+                                    if (e instanceof SocketTimeoutException){
+                                        push_listen_res("监听超时", "监听地址连接超时，请检查网络设置...", 1);
+                                    }
+                                    if (e instanceof ConnectException){
+                                        push_listen_res("连接错误", "监听地址无法返回正确数据，请检查网络设置...", 2);
+                                    }
+                                });
+                            }
                         }
-                        if (e instanceof ConnectException){
-                            push_listen_res("连接错误", "监听地址无法返回正确数据，请检查网络设置...", 2);
-                        }
-                    }
-                    @Override
-                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                        String res = Objects.requireNonNull(response.body()).string();
-                        if (!res.equals(temp[0])){
-                            push_listen_res(card.getCardNote(), res.replace(temp[0], ""), 0);
-                        }
-                        temp[0] = res;
-                    }
-                });
+                );
+
                 try {
                     throwInMethod();
                 } catch (InterruptedException e) {
@@ -975,16 +996,6 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * 复制内容到剪贴板
-     * @param text 需要复制的内容
-     */
-    void copyToClipboard(String text) {
-        ClipboardManager cm = (ClipboardManager) requireActivity().getSystemService(Context.CLIPBOARD_SERVICE);
-        ClipData mClipData = ClipData.newPlainText("Label", text);
-        cm.setPrimaryClip(mClipData);
-    }
-
-    /**
      * 获取当前时间
      * @return yyyy-MM-dd HH:mm:ss
      */
@@ -1068,7 +1079,7 @@ public class HomeFragment extends Fragment {
         @Override
         public boolean handleMessage(@NonNull Message msg) {
             if (msg.what == HANDLER_MESSAGE_SHOW_CARD_DATA) {
-                copyToClipboard(card_data);
+                copyToClipboard(card_data, requireActivity());
                 new MaterialAlertDialogBuilder(requireActivity())
                         .setTitle("卡片数据已复制到您的剪贴板")
                         .setMessage(card_data)
@@ -1114,7 +1125,7 @@ public class HomeFragment extends Fragment {
                     new MaterialAlertDialogBuilder(requireActivity())
                             .setTitle(queryIP+"的查询结果")
                             .setMessage(res)
-                            .setNegativeButton("复制结果", (dialog, which) -> copyToClipboard(res))
+                            .setNegativeButton("复制结果", (dialog, which) -> copyToClipboard(res, requireActivity()))
                             .setPositiveButton("好", null).show();
                 } catch (JSONException e) {
                     throw new RuntimeException(e);

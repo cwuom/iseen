@@ -22,8 +22,8 @@ import com.cwuom.iseen.Entity.EntityUser;
 import com.cwuom.iseen.InitDataBase.InitUserDataBase;
 import com.cwuom.iseen.LoginActivity;
 import com.cwuom.iseen.R;
-import com.cwuom.iseen.Util.ArkAPIReq;
-import com.cwuom.iseen.Util.BiliBiliAPIReq;
+import com.cwuom.iseen.Util.API.Ark.ArkAPIReq;
+import com.cwuom.iseen.Util.API.Bili.BiliBiliAPIReq;
 import com.cwuom.iseen.Util.UtilMethod;
 import com.cwuom.iseen.View.CircleCropTransform;
 import com.cwuom.iseen.databinding.FragmentProfileBinding;
@@ -113,7 +113,7 @@ public class ProfileFragment extends Fragment {
                     isLogin = entityUser.isLoginUser();
                     handler.sendEmptyMessage(HANDLER_MESSAGE_UPDATE_USERINFO_LOADING);
                     if (!profile_info_load_flag){
-                        ark_coins = Objects.requireNonNull(ArkAPIReq.getArkCoinsByMid(userUID, "https://api.cwuom.love/coins_query.php?mid="));
+                        ark_coins = Objects.requireNonNull(ArkAPIReq.getArkCoinsByMid(userUID));
                         profile_info_load_flag = true;
                     }
 
@@ -145,7 +145,7 @@ public class ProfileFragment extends Fragment {
                 userCoins = jsonObject_userinfo.optString("coins");
                 userBirthday = jsonObject_userinfo.optString("birthday");
                 userFollows = jsonObject_userinfo.optInt("friend");
-                ark_coins = Objects.requireNonNull(ArkAPIReq.getArkCoinsByMid(userUID, "https://api.cwuom.love/coins_query.php?mid="));
+                ark_coins = Objects.requireNonNull(ArkAPIReq.getArkCoinsByMid(userUID));
                 userDao.deleteLoginUser();
 
                 userDao.insertUser(new EntityUser(userUID, userName, userImageUrl, userRegTime, userSign, userCoins, userBirthday, ark_coins, userFollows, userCookies, true));
