@@ -17,6 +17,7 @@ import com.cwuom.iseen.Pager.CardGeneratorPager.CardGeneratorFragment;
 import com.cwuom.iseen.Pager.HomePager.HomeFragment;
 import com.cwuom.iseen.Pager.ProfilePager.ProfileFragment;
 import com.cwuom.iseen.databinding.ActivityNavigationBinding;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 /*
  * This software is provided for educational purposes only and should not be used for commercial or illegal activities.
@@ -147,6 +148,10 @@ public class NavigationActivity extends AppCompatActivity {
             fragmentTransaction.commit();
             currentFragment = to;
         }
+    }
+
+    public BottomNavigationView getBottomNavigationView() {
+        return binding.bottomNavigation;
     }
 
 }

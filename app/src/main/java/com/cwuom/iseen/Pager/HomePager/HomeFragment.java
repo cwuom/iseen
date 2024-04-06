@@ -5,7 +5,6 @@ import static android.content.Context.NOTIFICATION_SERVICE;
 import static com.cwuom.iseen.Util.UtilMethod.ShowLoadingSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.ShowSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.copyToClipboard;
-import static com.cwuom.iseen.Util.UtilMethod.inputStreamToString;
 import static com.cwuom.iseen.Util.UtilMethod.replaceLastNewline;
 import static com.kongzue.dialogx.impl.ActivityLifecycleImpl.getApplicationContext;
 
@@ -52,6 +51,7 @@ import com.cwuom.iseen.Entity.EntityCallbackContent;
 import com.cwuom.iseen.Entity.EntityCard;
 import com.cwuom.iseen.Entity.EntityCardHistory;
 import com.cwuom.iseen.InitDataBase.InitCardDataBase;
+import com.cwuom.iseen.NavigationActivity;
 import com.cwuom.iseen.R;
 import com.cwuom.iseen.Util.API.Ark.ArkAPIReq;
 import com.cwuom.iseen.Util.API.Ark.ArkApiCallback;
@@ -59,6 +59,7 @@ import com.cwuom.iseen.Util.NeverCrash;
 import com.cwuom.iseen.Util.NotificationUtil;
 import com.cwuom.iseen.Util.UtilMethod;
 import com.cwuom.iseen.databinding.FragmentHomeBinding;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.snackbar.Snackbar;
@@ -78,10 +79,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
-import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URI;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -133,7 +132,7 @@ public class HomeFragment extends Fragment {
     private String custom_image_url;  // 自定义图片地址
     private String php_filename;  // PHP文件名/地址
 //    private String data_dir;  // 监听数据存放目录
-    private String req_url;  // 图片签名地址
+    private String endpoint;  // 图片签名地址
     private String note;  // 卡片备注
     private Boolean switch_followID = Boolean.TRUE;  // 子标题是否跟随标识
     private Boolean switch_hidePhp = Boolean.TRUE;  // 是否隐藏php地址（可以把它隐藏成沙雕图）
@@ -157,11 +156,12 @@ public class HomeFragment extends Fragment {
     private final ArrayList<String> listener_url = new ArrayList<>();  // 监听地址列表
     private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;  // 图片选择器 (旧android也许不兼容，Android13支持)
     private String image_uri;  // 背景图uri地址
-    private final String API = "https://ark.cwuom.love/get_card?title=%s&subtitle=%s&prompt=%s&cover=%s";   // API地址设置
+    private final String API_endpoint = "/get_card?title=%s&subtitle=%s&prompt=%s&cover=%s";   // API地址设置
     private final String API_GET_RES = "https://api.cwuom.love/get.php?filename=%s";   // API地址设置(获取结果)
     private Snackbar snackbar = null;  // 加载snackbar
     private int req_interval = 30000;
     private boolean skipHiddenModeTips = false;
+    BottomNavigationView bottomNavigationView;
 
 
     @Override
@@ -180,15 +180,18 @@ public class HomeFragment extends Fragment {
         editor = sharedPreferences.edit();
         configRestore();
 
+        if(getActivity() instanceof NavigationActivity) {
+            bottomNavigationView = ((NavigationActivity) getActivity()).getBottomNavigationView();
+        }
+
         pickMedia =
                 registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
                     if (uri != null) {
                         Log.d("PhotoPicker", "Selected URI: " + uri);
                         editor.putString("image_uri", String.valueOf(uriToUri(uri, requireActivity()))).apply();
                         binding.background.setImageURI(uri);
-                        ShowSnackbar("背景图已更新！", requireActivity());
+                        ShowSnackbar("背景图已更新！", requireActivity(), bottomNavigationView);
                     } else {
-                        ShowSnackbar("没有选择合适的媒体，维持原态", requireActivity());
                         Log.d("PhotoPicker", "No media selected");
                     }
                 });
@@ -266,11 +269,10 @@ public class HomeFragment extends Fragment {
             if (binding.switchHidePhp.isChecked()){
                 url = server+hidePath+id+".png";
             }
-//            req_url = API+url+"&title="+title+"&subtitle="+subtitle+"&yx="+yx;
-            req_url = String.format(API, title, subtitle, yx, url);
+            endpoint = String.format(API_endpoint, title, subtitle, yx, url);
             String img = Objects.requireNonNull(binding.customImage.getText()).toString();
             if (!img.isEmpty()){
-                req_url += "/" + Base64.encodeToString(img.getBytes(), Base64.NO_WRAP);
+                endpoint += "/" + Base64.encodeToString(img.getBytes(), Base64.NO_WRAP);
             }
 
             String cardListenerUrl = String.format(API_GET_RES, id+".png.txt");
@@ -278,23 +280,40 @@ public class HomeFragment extends Fragment {
                 cardListenerUrl = String.format(API_GET_RES, id+".txt");
             }
             if (!JudgmentListenerRepetition(cardListenerUrl)){ // 判断是否重复
-                ShowSnackbar("正在提交数据并签名，请稍等。", requireActivity());
-                getCardData(req_url);  // 向API发送签名请求
+                Snackbar snackbar_loading = ShowLoadingSnackbar("正在提交数据并签名，请稍等..", binding.getRoot(), bottomNavigationView);
+                ArkAPIReq.sendSignaturePostRequest(endpoint, null, new ArkApiCallback() {
+                    @Override
+                    public void onSuccess(String result) {
+                        card_data = result;
+                        handler.sendEmptyMessage(HANDLER_MESSAGE_SHOW_CARD_DATA);
+                        snackbar_loading.dismiss();
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        requireActivity().runOnUiThread(() -> new MaterialAlertDialogBuilder(requireActivity())
+                                .setTitle("出了点问题！")
+                                .setMessage("请求失败: " + e.getMessage())
+                                .setPositiveButton("好", null)
+                                .show());
+                        snackbar_loading.dismiss();
+                    }
+                });
             } else {
-                ShowSnackbar("相同标识的卡片已经存在，请更换标识。", requireActivity());
+                ShowSnackbar("相同标识的卡片已经存在，请更换标识。", requireActivity(), bottomNavigationView);
             }
         });
 
         // 保存卡片配置
         binding.btnSave.setOnClickListener(v -> {
             save_config();
-            ShowSnackbar("配置已保存！", requireActivity());
+            ShowSnackbar("配置已保存！", requireActivity(), bottomNavigationView);
         });
 
         // 恢复卡片配置
         binding.btnRestore.setOnClickListener(v -> {
             configRestore();
-            ShowSnackbar("配置已恢复！", requireActivity());
+            ShowSnackbar("配置已恢复！", requireActivity(), bottomNavigationView);
         });
 
         // 填充默认服务器设置
@@ -314,7 +333,7 @@ public class HomeFragment extends Fragment {
 
                 String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
                 binding.id.setText(uuid);
-                ShowSnackbar("默认服务器配置已填充~", requireActivity());
+                ShowSnackbar("默认服务器配置已填充~", requireActivity(), bottomNavigationView);
                 skipHiddenModeTips = false;
             }
         });
@@ -557,7 +576,7 @@ public class HomeFragment extends Fragment {
                                     .show();
                         }
                         if (id == R.id.item_del_all_on_server){
-                            new InputDialog("您需要先通过2FA验证", "默认您已长按此按钮并填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
+                            new InputDialog("您需要先通过2FA验证", "默认您已填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
                                     .setCancelable(false)
                                     .setOkButton((baseDialog, v12, code) -> {
                                         String url = sharedPreferences.getString("auth_server", "");
@@ -699,7 +718,7 @@ public class HomeFragment extends Fragment {
                 break;
 
             case -1:  // click 'Get'
-                snackbar = ShowLoadingSnackbar("请求已发送，正在等待服务器响应..", requireActivity().getCurrentFocus());
+                snackbar = ShowLoadingSnackbar("请求已发送，正在等待服务器响应..", requireActivity().getCurrentFocus(), null);
                 break;
             case -2:  // do dismiss
                 if (snackbar != null) snackbar.dismiss();
@@ -894,26 +913,6 @@ public class HomeFragment extends Fragment {
             }
         }
         return false;
-    }
-
-    /**
-     获取卡片代码，需先请求API
-     */
-    void getCardData(String req_url){
-        new Thread(() -> {
-            try {
-                URL url = new URL(req_url);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.connect();
-                int responseCode = connection.getResponseCode();
-                if(responseCode == HttpURLConnection.HTTP_OK){
-                    InputStream inputStream = connection.getInputStream();
-                    card_data = inputStreamToString(inputStream);
-                    handler.sendEmptyMessage(HANDLER_MESSAGE_SHOW_CARD_DATA);
-                }
-            } catch (Exception ignored) {}
-        }).start();
     }
 
     /**

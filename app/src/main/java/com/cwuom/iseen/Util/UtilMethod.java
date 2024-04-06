@@ -106,7 +106,7 @@ public class UtilMethod {
      @param info 需要展示的信息
      */
     @SuppressLint("RestrictedApi")
-    public static void ShowSnackbar(String info, Activity activity){  // 注: 无障碍模式会导致Snackbar无动画
+    public static void ShowSnackbar(String info, Activity activity, View view){  // 注: 无障碍模式会导致Snackbar无动画
         Snackbar snackbar;
         View rootView = activity.getWindow().getDecorView();
         View coordinatorLayout = rootView.findViewById(android.R.id.content);
@@ -124,11 +124,14 @@ public class UtilMethod {
         text2.setText("好");
         text2.setOnClickListener(v -> snackbar.dismiss());
         snackbarView.addView(inflate);
+        if (view != null){
+            snackbar.setAnchorView(view);
+        }
         snackbar.show();
     }
 
     @SuppressLint("RestrictedApi")
-    public static Snackbar ShowLoadingSnackbar(String info ,View coordinatorLayout){  // 注: 无障碍模式会导致Snackbar无动画
+    public static Snackbar ShowLoadingSnackbar(String info ,View coordinatorLayout, View view){  // 注: 无障碍模式会导致Snackbar无动画
         Snackbar snackbar;
         snackbar = Snackbar.make(coordinatorLayout, "", BaseTransientBottomBar.LENGTH_INDEFINITE);
         snackbar.getView().setBackgroundColor(Color.TRANSPARENT);
@@ -142,6 +145,9 @@ public class UtilMethod {
         text.setText(info);
         snackbarView.addView(inflate);
         snackbar.setDuration(20000);
+        if (view != null){
+            snackbar.setAnchorView(view);
+        }
         snackbar.show();
         return snackbar;
     }

@@ -1,6 +1,7 @@
 package com.cwuom.iseen.Pager.CardGeneratorPager;
 
 import static android.content.Context.MODE_PRIVATE;
+
 import static com.cwuom.iseen.Util.UtilMethod.copyToClipboard;
 
 import android.content.Intent;
@@ -16,23 +17,20 @@ import android.widget.ArrayAdapter;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
+import com.cwuom.iseen.NavigationActivity;
 import com.cwuom.iseen.QzoneActivity;
 import com.cwuom.iseen.R;
+import com.cwuom.iseen.Util.API.Ark.ArkAPIReq;
+import com.cwuom.iseen.Util.API.Ark.ArkApiCallback;
 import com.cwuom.iseen.Util.UtilMethod;
 import com.cwuom.iseen.databinding.FragmentCardGeneratorBinding;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.io.IOException;
 import java.util.Objects;
 
-import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 
 /*
@@ -57,7 +55,7 @@ public class CardGeneratorFragment extends Fragment {
     private String uin = "";
     private String p_skey = "";
     private String skey = "";
-    private final String BASE_URL = "https://ark.cwuom.love";
+    BottomNavigationView bottomNavigationView;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -71,6 +69,10 @@ public class CardGeneratorFragment extends Fragment {
     private void initMethod(){
         requireActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         requireActivity().getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+
+        if(getActivity() instanceof NavigationActivity) {
+            bottomNavigationView = ((NavigationActivity) getActivity()).getBottomNavigationView();
+        }
 
         hideAllInputs();
         String[] cardTypes = {"图转卡(imagetextbot)", "文转卡(Embed)", "分享类型卡片(News)", "小程序卡片(Miniapp)", "按钮卡片(eventshare.lua)"};
@@ -165,11 +167,44 @@ public class CardGeneratorFragment extends Fragment {
             }
 
             if (!Objects.requireNonNull(endpoint).isEmpty()) {
-                sendPostRequest(BASE_URL + endpoint, formBodyBuilder.build());
+                Snackbar snackbar = UtilMethod.ShowLoadingSnackbar("请求已发送，正在等待服务器响应..", binding.getRoot(), bottomNavigationView);
+                ArkAPIReq.sendSignaturePostRequest(endpoint, formBodyBuilder.build(), new ArkApiCallback() {
+                    @Override
+                    public void onSuccess(String result) {
+                        requireActivity().runOnUiThread(() -> {
+                            copyToClipboard(result, requireActivity());
+                            new MaterialAlertDialogBuilder(requireActivity())
+                                    .setTitle("卡片数据已复制到您的剪贴板")
+                                    .setMessage(result)
+                                    .setPositiveButton("好", null)
+                                    .show();
+
+                            snackbar.dismiss();
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        requireActivity().runOnUiThread(() -> {
+                            new MaterialAlertDialogBuilder(requireActivity())
+                                    .setTitle("出了点问题！")
+                                    .setMessage("请求失败: " + e.getMessage())
+                                    .setPositiveButton("好", null)
+                                    .show();
+
+                            snackbar.dismiss();
+                        });
+                    }
+                });
             }
         });
 
-        binding.btnLogin.setOnClickListener(v -> startActivity(new Intent(getActivity(), QzoneActivity.class)));
+        binding.btnLogin.setOnClickListener(v -> {
+            startActivity(new Intent(getActivity(), QzoneActivity.class));
+            binding.uin.setText("");
+            binding.skey.setText("");
+            binding.pSkey.setText("");
+        });
     }
 
 
@@ -230,49 +265,6 @@ public class CardGeneratorFragment extends Fragment {
                 binding.textFieldPSkey.setVisibility(View.VISIBLE);
                 break;
         }
-    }
-
-    private void sendPostRequest(String url, RequestBody body) {
-        Snackbar snackbar = UtilMethod.ShowLoadingSnackbar("正在提交数据...", requireActivity().getCurrentFocus());
-
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                requireActivity().runOnUiThread(() -> {
-                    new MaterialAlertDialogBuilder(requireActivity())
-                            .setTitle("出了点问题！")
-                            .setMessage("请求失败: " + e.getMessage())
-                            .setPositiveButton("好", null)
-                            .show();
-
-                    snackbar.dismiss();
-                });
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                if (!response.isSuccessful()) {
-                    return;
-                }
-                String responseData = Objects.requireNonNull(response.body()).string();
-                requireActivity().runOnUiThread(() -> {
-                    copyToClipboard(responseData, requireActivity());
-                    new MaterialAlertDialogBuilder(requireActivity())
-                            .setTitle("卡片数据已复制到您的剪贴板")
-                            .setMessage(responseData)
-                            .setPositiveButton("好", null)
-                            .show();
-
-                    snackbar.dismiss();
-                });
-            }
-        });
     }
 
     private void hideAllInputs() {

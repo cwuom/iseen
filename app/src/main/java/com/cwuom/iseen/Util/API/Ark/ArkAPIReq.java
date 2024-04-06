@@ -2,6 +2,8 @@ package com.cwuom.iseen.Util.API.Ark;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+
 import com.cwuom.iseen.Dao.UserDao;
 import com.cwuom.iseen.Entity.EntityUser;
 import com.cwuom.iseen.InitDataBase.InitUserDataBase;
@@ -42,6 +44,8 @@ import okhttp3.Response;
 
 public class ArkAPIReq {
     public static String API_getArkCoinsByMid = "https://api.cwuom.love/coins_query.php?mid=";
+    public static final String API_signature = "https://ark.cwuom.love";
+
     public static String getArkCoinsByMid(String UID){
         try {
             URL apiUrl = new URL(API_getArkCoinsByMid+UID);
@@ -109,6 +113,48 @@ public class ArkAPIReq {
                         response.body().close(); // Ensure closing the response body
                     }
                 }
+            }
+        });
+    }
+
+    public static void sendSignaturePostRequest(String endpoint, RequestBody body, ArkApiCallback callback) {
+        OkHttpClient client = new OkHttpClient();
+        Request request;
+        if (body != null){
+             request = new Request.Builder()
+                    .url(API_signature + endpoint)
+                    .post(body)
+                    .build();
+        } else {
+            request = new Request.Builder()
+                    .url(API_signature + endpoint)
+                    .get()
+                    .build();
+        }
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                callback.onFailure(e);
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                try {
+                    if (response.isSuccessful() && response.body() != null) {
+                        String res = response.body().string();
+                        callback.onSuccess(res);
+                    } else {
+                        callback.onFailure(new IOException("Unexpected code " + response));
+                    }
+                } catch (Exception e) {
+                    callback.onFailure(e);
+                } finally {
+                    if (response.body() != null) {
+                        response.body().close();
+                    }
+                }
+
             }
         });
     }
