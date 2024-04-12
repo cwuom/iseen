@@ -5,6 +5,7 @@ import static android.content.Context.NOTIFICATION_SERVICE;
 import static com.cwuom.iseen.Util.UtilMethod.ShowLoadingSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.ShowSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.copyToClipboard;
+import static com.cwuom.iseen.Util.UtilMethod.getAuthAPI;
 import static com.cwuom.iseen.Util.UtilMethod.replaceLastNewline;
 import static com.kongzue.dialogx.impl.ActivityLifecycleImpl.getApplicationContext;
 
@@ -42,6 +43,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -124,7 +126,6 @@ public class HomeFragment extends Fragment {
     private final int HANDLER_MESSAGE_QUERY_IP_FAILED = 5;  // IP详情获取失败时
     private String card_data = "";  // 卡片代码
 
-    private String server;  // 服务器地址
     private String title;  // 卡片标题
     private String subtitle;  // 卡片副标题
     private String yx;  // 卡片外显
@@ -157,7 +158,7 @@ public class HomeFragment extends Fragment {
     private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;  // 图片选择器 (旧android也许不兼容，Android13支持)
     private String image_uri;  // 背景图uri地址
     private final String API_endpoint = "/get_card?title=%s&subtitle=%s&prompt=%s&cover=%s";   // API地址设置
-    private final String API_GET_RES = "https://api.cwuom.love/get.php?filename=%s";   // API地址设置(获取结果)
+    private final String API_GET_RES_endpoint = "/get.php?filename=%s";   // API地址设置(获取结果)
     private Snackbar snackbar = null;  // 加载snackbar
     private int req_interval = 30000;
     private boolean skipHiddenModeTips = false;
@@ -173,12 +174,30 @@ public class HomeFragment extends Fragment {
         return binding.getRoot();
     }
 
+    @SuppressLint("SetTextI18n")
     private void initMethod(){
         requireActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         requireActivity().getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         sharedPreferences = requireActivity().getSharedPreferences("config", MODE_PRIVATE);
         editor = sharedPreferences.edit();
         configRestore();
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(requireActivity());
+        boolean thin_mode = preferences.getBoolean("thin_mode", false);
+        boolean hidden_warning = preferences.getBoolean("hidden_warning", false);
+        if (thin_mode){
+            binding.hidePath.setText("special/kp/");
+            switch_hidePhp = Boolean.TRUE;
+            skipHiddenModeTips = true;
+            binding.switchHidePhp.setChecked(true);
+            binding.switchAutoUpdateUuid.setChecked(true);
+            editor.putBoolean("switch_hidePhp", true).apply();
+            save_config();
+            binding.settingCard.setVisibility(View.GONE);
+        }
+        if (hidden_warning){
+            binding.warningCard.setVisibility(View.GONE);
+        }
 
         if(getActivity() instanceof NavigationActivity) {
             bottomNavigationView = ((NavigationActivity) getActivity()).getBottomNavigationView();
@@ -265,9 +284,9 @@ public class HomeFragment extends Fragment {
             }
 
             updateInputInfo();
-            String url = server+php_filename+"?id="+id+".png";
+            String url = UtilMethod.getAuthAPI(getActivity())+php_filename+"?id="+id+".png";
             if (binding.switchHidePhp.isChecked()){
-                url = server+hidePath+id+".png";
+                url = UtilMethod.getAuthAPI(getActivity())+hidePath+id+".png";
             }
             endpoint = String.format(API_endpoint, title, subtitle, yx, url);
             String img = Objects.requireNonNull(binding.customImage.getText()).toString();
@@ -275,13 +294,13 @@ public class HomeFragment extends Fragment {
                 endpoint += "/" + Base64.encodeToString(img.getBytes(), Base64.NO_WRAP);
             }
 
-            String cardListenerUrl = String.format(API_GET_RES, id+".png.txt");
+            String cardListenerUrl = getAuthAPI(getActivity()) + String.format(API_GET_RES_endpoint, id+".png.txt");
             if (binding.switchHidePhp.isChecked()){  // 开启了隐匿模式，查询地址会发生变化
-                cardListenerUrl = String.format(API_GET_RES, id+".txt");
+                cardListenerUrl = getAuthAPI(getActivity()) + String.format(API_GET_RES_endpoint, id+".txt");
             }
             if (!JudgmentListenerRepetition(cardListenerUrl)){ // 判断是否重复
                 Snackbar snackbar_loading = ShowLoadingSnackbar("正在提交数据并签名，请稍等..", binding.getRoot(), bottomNavigationView);
-                ArkAPIReq.sendSignaturePostRequest(endpoint, null, new ArkApiCallback() {
+                ArkAPIReq.sendSignaturePostRequest(endpoint, null, getApplicationContext(), new ArkApiCallback() {
                     @Override
                     public void onSuccess(String result) {
                         card_data = result;
@@ -321,8 +340,6 @@ public class HomeFragment extends Fragment {
             @SuppressLint("SetTextI18n")
             @Override
             public void onClick(View v) {
-                binding.server.setText("https://api.cwuom.love/");
-                binding.php.setText("kp.php");
                 binding.dataDirectory.setText("kpData");
                 binding.hidePath.setText("special/kp/");
                 switch_hidePhp = Boolean.TRUE;
@@ -354,28 +371,6 @@ public class HomeFragment extends Fragment {
             public void afterTextChanged(Editable s) {}
         });
 
-
-        // 平台跳转
-        binding.devCard.setOnClickListener(v -> new MaterialAlertDialogBuilder(requireActivity())
-                .setTitle("对此有点兴趣吗？")
-                .setMessage("点击下方按钮，跳转对应平台。")
-                .setNegativeButton("Telegram", (dialog, which) -> {
-                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/cwuoms_group"));
-                    startActivity(browserIntent);
-                })
-                .setPositiveButton("QQ", (dialog, which) -> {
-                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=UD5xNmXt0Otz0OrvpXCaKnSd04BDf0rm&authKey=40ctuZ7TZLHzf1LBJZ29Nqvu%2F55gAnvqJ%2FB7s8oJvWsM7AA07%2BXIF8J2GKctM4hD&noverify=0&group_code=923071208"));
-                    startActivity(browserIntent);
-                })
-                .setNeutralButton("关闭", null)
-                .show());
-
-        // 长按跳转到B站
-        binding.devCard.setOnLongClickListener(v -> {
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://space.bilibili.com/473400804"));
-            startActivity(browserIntent);
-            return true;
-        });
 
         binding.warningCard.setOnClickListener(v -> new MaterialAlertDialogBuilder(requireActivity())
                 .setTitle("戳我没用啦~")
@@ -422,8 +417,6 @@ public class HomeFragment extends Fragment {
             if (isChecked) {
                 hideDangerousInput();
             } else {
-                binding.server.setTransformationMethod(null);
-                binding.php.setTransformationMethod(null);
                 binding.dataDirectory.setTransformationMethod(null);
             }
 
@@ -471,12 +464,13 @@ public class HomeFragment extends Fragment {
      */
     public static URI uriToUri(Uri uri, Context context) {
         File file = null;
-        if (uri == null) return file.toURI();
-        //android10以上转换
+        if (uri == null) return null;
+
+        // android10以上转换
         if (Objects.equals(uri.getScheme(), ContentResolver.SCHEME_FILE)) {
             file = new File(Objects.requireNonNull(uri.getPath()));
         } else if (Objects.equals(uri.getScheme(), ContentResolver.SCHEME_CONTENT)) {
-            //把文件复制到沙盒目录
+            // 把文件复制到沙盒目录
             ContentResolver contentResolver = context.getContentResolver();
             String displayName = System.currentTimeMillis() + Math.round((Math.random() + 1) * 1000)
                     + "." + MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(uri));
@@ -500,7 +494,6 @@ public class HomeFragment extends Fragment {
 
     void save_config(){
         updateInputInfo();
-        editor.putString("server", server);
         editor.putString("title", title);
         editor.putString("subtitle", subtitle);
         editor.putString("yx", yx);
@@ -517,8 +510,6 @@ public class HomeFragment extends Fragment {
      * 隐藏关键输入信息
      */
     void hideDangerousInput(){
-        binding.server.setTransformationMethod(new PasswordTransformationMethod());
-        binding.php.setTransformationMethod(new PasswordTransformationMethod());
         binding.dataDirectory.setTransformationMethod(new PasswordTransformationMethod());
     }
 
@@ -534,7 +525,6 @@ public class HomeFragment extends Fragment {
                 RecyclerView rv_card_list = v.findViewById(R.id.card_list);
                 TextView tv_count = v.findViewById(R.id.number_of_cards);
                 TextView tv_more_options = v.findViewById(R.id.more_options);
-//                Button btn_del_all = v.findViewById(R.id.btn_del_all);
                 List<EntityCard> localCard = getLocalCardHistory();
                 if (localCard != null && !localCard.isEmpty()){
                     tv_count.setText(getString(R.string.number_of_cards, Objects.requireNonNull(localCard).size()+""));
@@ -919,13 +909,11 @@ public class HomeFragment extends Fragment {
      读取EditText等数据赋值到全局变量中
      */
     void updateInputInfo(){
-        server = Objects.requireNonNull(binding.server.getText()).toString();
         title = Objects.requireNonNull(binding.title.getText()).toString();
         subtitle = Objects.requireNonNull(binding.subtitle.getText()).toString();
         yx = Objects.requireNonNull(binding.yx.getText()).toString();
         custom_image_url = Objects.requireNonNull(binding.customImage.getText()).toString();
         id = Objects.requireNonNull(binding.id.getText()).toString();
-        php_filename = Objects.requireNonNull(binding.php.getText()).toString();
         note = Objects.requireNonNull(binding.note.getText()).toString();
         hidePath = Objects.requireNonNull(binding.hidePath.getText()).toString();
         if (Objects.equals(note, "") || note == null){
@@ -938,12 +926,10 @@ public class HomeFragment extends Fragment {
      */
     void configRestore(){
         read_config();
-        binding.server.setText(server);
         binding.title.setText(title);
         binding.subtitle.setText(subtitle);
         binding.yx.setText(yx);
         binding.id.setText(id);
-        binding.php.setText(php_filename);
         binding.note.setText(note);
         binding.hidePath.setText(hidePath);
         binding.switchFollowId.setChecked(switch_followID);
@@ -971,7 +957,6 @@ public class HomeFragment extends Fragment {
      读取以往保存的数据并赋值到全局变量中
      */
     void read_config(){
-        server = sharedPreferences.getString("server","");
         title = sharedPreferences.getString("title","");
         subtitle = sharedPreferences.getString("subtitle","");
         yx = sharedPreferences.getString("yx","");
@@ -980,11 +965,11 @@ public class HomeFragment extends Fragment {
         php_filename = sharedPreferences.getString("php_filename","");
         note = sharedPreferences.getString("note","");
         hidePath =  sharedPreferences.getString("hidePath","");
-        switch_followID = sharedPreferences.getBoolean("switch_followID",true);
+        switch_followID = sharedPreferences.getBoolean("switch_followID",false);
         switch_hidePhp = sharedPreferences.getBoolean("switch_hidePhp",false);
-        switch_auto_update_uuid = sharedPreferences.getBoolean("switch_auto_update_uuid",false);
+        switch_auto_update_uuid = sharedPreferences.getBoolean("switch_auto_update_uuid",true);
         switch_hide_dangerous_input = sharedPreferences.getBoolean("switch_hide_edit",false);
-        switch_show_background = sharedPreferences.getBoolean("showBackground",true);
+        switch_show_background = sharedPreferences.getBoolean("showBackground",false);
         image_uri = sharedPreferences.getString("image_uri",null);
         req_interval = sharedPreferences.getInt("req_interval",30000);
         if (req_interval / 1000 == 0){
@@ -1087,9 +1072,9 @@ public class HomeFragment extends Fragment {
 
                 String cardData = card_data;
                 String filename = id+".png.txt";
-                String cardListenerUrl = String.format(API_GET_RES, id+".png.txt");
+                String cardListenerUrl = getAuthAPI(getActivity()) + String.format(API_GET_RES_endpoint, id+".png.txt");
                 if (binding.switchHidePhp.isChecked() && Objects.requireNonNull(binding.customImage.getText()).toString().isEmpty()){  // 开启了隐匿模式，查询地址会发生变化
-                    cardListenerUrl = String.format(API_GET_RES, id+".txt");
+                    cardListenerUrl = getAuthAPI(getActivity()) + String.format(API_GET_RES_endpoint, id+".txt");
                 }
                 cardDao.insertCard(new EntityCard(title, subtitle, filename, cardData, cardListenerUrl, getDate(), note));
             }
@@ -1129,7 +1114,7 @@ public class HomeFragment extends Fragment {
                 } catch (JSONException e) {
                     throw new RuntimeException(e);
                 }
-//                UtilMethod.showDialog("返回详情", getIPQueryRes_callback, requireActivity());
+
             }
             if (msg.what == HANDLER_MESSAGE_QUERY_IP_FAILED) {
                 UtilMethod.showDialog("在获取IP详情时发生错误", "请检查网络设置..", requireActivity());

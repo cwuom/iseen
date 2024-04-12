@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory android:title="@string/ui_setting">
+        <rikka.material.preference.MaterialSwitchPreference
+            android:icon="@drawable/baseline_auto_awesome_24"
+            android:key="thin_mode"
+            android:title="@string/thin_mode"
+            android:summary="@string/thin_mode_desc"
+            />
+        <rikka.material.preference.MaterialSwitchPreference
+            android:icon="@drawable/warning_black"
+            android:key="hidden_warning"
+            android:summary="@string/hidden_warning_desc"
+            android:title="@string/hidden_warning_title" />
+        <rikka.material.preference.MaterialSwitchPreference
+            android:icon="@drawable/baseline_hide_source_24"
+            android:key="hide_status_bar_below"
+            android:title="@string/hide_status_bar_below"
+            android:summary="@string/hide_status_bar_below_desc"
+            />
+
+        <rikka.preference.SimpleMenuPreference
+            android:defaultValue="CLASSIC"
+            android:entries="@array/color_texts"
+            android:entryValues="@array/color_values"
+            android:icon="@drawable/theme"
+            android:key="theme_color"
+            android:summary="%s"
+            android:title="@string/theme_setting" />
+
+        <rikka.preference.SimpleMenuPreference
+            android:defaultValue="zh"
+            android:entries="@array/lang_texts"
+            android:entryValues="@array/lang_values"
+            android:icon="@drawable/language"
+            android:key="language"
+            android:summary="%s"
+            android:title="@string/lang"
+            />
+
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/api_setting">
+        <rikka.material.preference.MaterialSwitchPreference
+            android:icon="@drawable/baseline_auto_fix_normal_24"
+            android:key="use_default_api_settings"
+            android:title="@string/use_default_api_settings"
+            android:defaultValue="true"
+            />
+
+
+        <EditTextPreference
+            app:key="signature_server_address"
+            app:useSimpleSummaryProvider="true"
+            app:title="@string/signature_server_address"
+            app:icon="@drawable/baseline_api_24"
+            />
+
+        <EditTextPreference
+            app:key="authentication_server_address"
+            app:useSimpleSummaryProvider="true"
+            app:title="@string/authentication_server_address"
+            app:icon="@drawable/request"
+            />
+
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/troubleshooting_debugging">
+
+        <Preference
+            app:key="check_api"
+            app:icon="@drawable/baseline_check_circle_24"
+            app:summary="@string/click_for_details"
+            app:title="@string/interface_usability_testing" />
+
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/Q_and_A">
+
+        <Preference
+            app:summary="@string/some_functions_need_to_be_restarted_to_fully_apply"
+            app:title="@string/why_didnt_it_take_effect" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/about">
+
+        <Preference
+            app:summary="@string/dev_description" />
+
+        <Preference
+            app:key="join_telegram"
+            app:icon="@drawable/telegram"
+            app:summary="Join Telegram Group"
+            />
+        <Preference
+            app:key="join_qq"
+            app:icon="@drawable/qq"
+            app:summary="Join QQ Group"
+            />
+        <Preference
+            app:key="bilibili"
+            app:icon="@drawable/bilibili"
+            app:summary="bilibili@im-cwuom"
+            />
+        <Preference
+            app:key="github"
+            app:icon="@drawable/github"
+            app:summary="Github"
+            />
+
+    </PreferenceCategory>
+
+
+</PreferenceScreen>

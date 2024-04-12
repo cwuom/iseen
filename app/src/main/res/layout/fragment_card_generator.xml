@@ -431,7 +431,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/view_margin_normal_spacing"
-                            android:text="@string/generate_and_signature"
+                            android:text="@string/generate_and_sign"
                             android:enabled="false"
                             />
 

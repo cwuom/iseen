@@ -83,36 +83,6 @@
                             android:text="@string/edit_the_card_info_you_want" />
 
                         <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/textField_server"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:hint="@string/server_address"
-                            android:layout_marginTop="@dimen/view_margin_normal_spacing">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/server"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/textField_php"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:hint="@string/php_filename_disguised_as_image"
-                            android:layout_marginTop="@dimen/view_margin_normal_spacing">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/php"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <com.google.android.material.textfield.TextInputLayout
                             android:id="@+id/textField_data_directory"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -127,12 +97,6 @@
                                 />
 
                         </com.google.android.material.textfield.TextInputLayout>
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="0.5dp"
-                            android:layout_marginTop="@dimen/font_small_size"
-                            android:background="@color/gray" />
 
                         <com.google.android.material.textfield.TextInputLayout
                             android:id="@+id/textField_title"
@@ -258,7 +222,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/view_margin_normal_spacing"
-                            android:text="@string/generate_and_signature">
+                            android:text="@string/generate_and_sign">
 
                         </Button>
 
@@ -305,7 +269,8 @@
                             <ImageView
                                 android:layout_width="30dp"
                                 android:layout_height="30dp"
-                                android:src="@drawable/baseline_settings_24" />
+                                android:src="@drawable/baseline_settings_24"
+                                android:importantForAccessibility="no" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -426,64 +391,6 @@
 
                     </LinearLayout>
 
-
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/dev_card"
-                    style="?attr/materialCardViewFilledStyle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/view_margin_small_spacing"
-                    android:layout_marginEnd="@dimen/view_margin_small_spacing"
-                    android:layout_marginBottom="@dimen/view_margin_small_spacing"
-                    android:clickable="true"
-                    android:orientation="vertical"
-                    app:cardElevation="2dp"
-                    android:layout_margin="@dimen/view_margin_normal_spacing">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="@dimen/view_margin_normal_spacing">
-
-                        <RelativeLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center|start"
-                            android:orientation="horizontal"
-                            android:padding="@dimen/view_margin_small_spacing">
-
-                            <ImageView
-                                android:layout_width="30dp"
-                                android:layout_height="30dp"
-                                android:src="@drawable/baseline_account_circle_24"
-                                android:importantForAccessibility="no" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_centerVertical="true"
-                                android:layout_marginStart="55dp"
-                                android:ellipsize="end"
-                                android:maxEms="10"
-                                android:maxLines="1"
-                                android:text="@string/developer"
-                                android:textColor="@color/black"
-                                android:textSize="@dimen/font_normal_size"
-                                android:textStyle="bold" />
-
-
-                        </RelativeLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/dev_description"
-                            />
-
-                    </LinearLayout>
 
                 </com.google.android.material.card.MaterialCardView>
 

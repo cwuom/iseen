@@ -1,11 +1,18 @@
 package com.cwuom.iseen.Util;
 
+import static android.content.ContentValues.TAG;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +21,7 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.preference.PreferenceManager;
 import androidx.room.Room;
 
 import com.cwuom.iseen.InitDataBase.InitCardDataBase;
@@ -23,12 +31,11 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 /*
  * This software is provided for educational purposes only and should not be used for commercial or illegal activities.
@@ -75,23 +82,6 @@ public class UtilMethod {
         return baseUserRoomDatabase;
     }
 
-    public static String inputStreamToString(InputStream inputStream) {
-        StringBuilder buffer = new StringBuilder();
-        InputStreamReader inputStreamReader;
-        try {
-            inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-            String str;
-            while ((str = bufferedReader.readLine()) != null) {
-                buffer.append(str);
-            }
-            // 释放资源
-            bufferedReader.close();
-            inputStreamReader.close();
-            inputStream.close();
-        } catch (IOException ignored) {}
-        return buffer.toString();
-    }
 
     public static AlertDialog showDialog(String title, String content, Context context){
         MaterialAlertDialogBuilder materialAlertDialogBuilder = new MaterialAlertDialogBuilder(context)
@@ -175,6 +165,76 @@ public class UtilMethod {
         ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData mClipData = ClipData.newPlainText("Label", text);
         cm.setPrimaryClip(mClipData);
+    }
+
+    public static float getPingDelay(String api) {
+        try {
+            URL url = new URL(api);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(3000);
+            long startTime = System.currentTimeMillis();
+            connection.connect();
+            connection.getResponseCode();
+            long endTime = System.currentTimeMillis();
+
+            long delay = endTime - startTime;
+            Log.i(TAG, "Server latency: " + delay + " ms");
+            return delay;
+
+        } catch (IOException e) {
+            return -1;
+        }
+    }
+
+    public static void setTheme(Context context) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String theme = preferences.getString("theme_color", "CLASSIC");
+
+        switch (theme) {
+            case "CLASSIC":
+                context.setTheme(R.style.Base_Theme_Iseen);
+                break;
+            case "SAKURA":
+                context.setTheme(R.style.Theme_Iseen_Sakura);
+                break;
+            case "MATERIAL_BLUE":
+                context.setTheme(R.style.Theme_Iseen_Blue);
+                break;
+        }
+    }
+
+    public static String getSignatureAPI(Context context) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        return preferences.getString("signature_server_address", "https://ark.cwuom.love/");
+    }
+    public static String getAuthAPI(Context context) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        return preferences.getString("authentication_server_address", "https://api.cwuom.love/");
+    }
+
+
+    public static void switchLanguage(String language, Context context) {
+        Resources resources = context.getResources();
+        Configuration configuration = resources.getConfiguration();
+        Locale locale = new Locale(language);
+        configuration.setLocale(locale);
+        context.getResources().updateConfiguration(configuration, resources.getDisplayMetrics());
+    }
+
+    public static String[] parseURLComponents(String url) {
+        String host = "";
+        String type = "";
+        try {
+            URL Url = new URL(url);
+            host = Url.getHost();
+            type = Url.toURI().getScheme();
+        } catch (Exception ignored) {}
+        return new String[] {host, type};
+    }
+    public static void recreate_fragment(Context context){
+        Intent intent = new Intent("ui_change");
+        context.sendBroadcast(intent);
     }
 
 

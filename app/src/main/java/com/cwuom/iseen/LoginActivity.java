@@ -1,17 +1,17 @@
 package com.cwuom.iseen;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.webkit.CookieManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.CookieManager;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.cwuom.iseen.Dao.UserDao;
 import com.cwuom.iseen.Entity.EntityUser;
@@ -125,7 +125,7 @@ public class LoginActivity extends AppCompatActivity {
                     String userCoins = jsonObject_userinfo.optString("coins");
                     String userBirthday = jsonObject_userinfo.optString("birthday");
                     int userFollows = jsonObject_userinfo.optInt("friend");
-                    String ark_coins = ArkAPIReq.getArkCoinsByMid(userUID);
+                    String ark_coins = ArkAPIReq.getArkCoinsByMid(userUID, getApplicationContext());
 
                     userDao.insertUser(new EntityUser(userUID, userName, userImageUrl, userRegTime, userSign, userCoins, userBirthday, ark_coins, userFollows, cookies, true));
                 } catch (JSONException | IOException e){

@@ -16,6 +16,7 @@ import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 
 import com.cwuom.iseen.NavigationActivity;
 import com.cwuom.iseen.QzoneActivity;
@@ -69,6 +70,12 @@ public class CardGeneratorFragment extends Fragment {
     private void initMethod(){
         requireActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         requireActivity().getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(requireActivity());
+        boolean hidden_warning = preferences.getBoolean("hidden_warning", false);
+        if (hidden_warning){
+            binding.warningCard.setVisibility(View.GONE);
+        }
 
         if(getActivity() instanceof NavigationActivity) {
             bottomNavigationView = ((NavigationActivity) getActivity()).getBottomNavigationView();
@@ -168,7 +175,7 @@ public class CardGeneratorFragment extends Fragment {
 
             if (!Objects.requireNonNull(endpoint).isEmpty()) {
                 Snackbar snackbar = UtilMethod.ShowLoadingSnackbar("请求已发送，正在等待服务器响应..", binding.getRoot(), bottomNavigationView);
-                ArkAPIReq.sendSignaturePostRequest(endpoint, formBodyBuilder.build(), new ArkApiCallback() {
+                ArkAPIReq.sendSignaturePostRequest(endpoint, formBodyBuilder.build(), getActivity(), new ArkApiCallback() {
                     @Override
                     public void onSuccess(String result) {
                         requireActivity().runOnUiThread(() -> {

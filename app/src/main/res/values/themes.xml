@@ -2,19 +2,112 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.Iseen" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">@color/light_primary</item>
-        <item name="colorOnPrimary">@color/md_theme_light_onPrimary</item>
-        <item name="colorPrimaryContainer">@color/aliceblue</item>
-        <item name="colorOnPrimaryContainer">@color/antiquewhite</item>
-        <item name="colorSecondary">@color/md_theme_light_secondaryContainer</item>
-        <item name="colorOnSecondary">@color/md_theme_light_onSecondary</item>
-        <item name="colorSecondaryContainer">@color/light_primary_background</item>
-        <item name="colorOnSecondaryContainer">@color/light_primary</item>
         <item name="android:statusBarColor">@color/transparent</item>
         <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
         <item name="android:forceDarkAllowed">false</item>
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
 
-    <style name="Theme.Iseen" parent="Base.Theme.Iseen" />
+    <style name="Theme.Iseen.Blue" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:colorForeground">@color/md_blue_theme_primaryContainer</item>
+        <item name="colorPrimary">@color/md_blue_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_blue_theme_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_blue_theme_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_blue_theme_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/md_blue_theme_secondary</item>
+        <item name="colorOnSecondary">@color/md_blue_theme_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/md_blue_theme_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md_blue_theme_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/md_blue_theme_tertiary</item>
+        <item name="colorOnTertiary">@color/md_blue_theme_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md_blue_theme_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md_blue_theme_onTertiaryContainer</item>
+        <item name="colorError">@color/md_blue_theme_error</item>
+        <item name="colorOnError">@color/md_blue_theme_onError</item>
+        <item name="colorErrorContainer">@color/md_blue_theme_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/md_blue_theme_onErrorContainer</item>
+        <item name="android:colorBackground">@color/md_blue_theme_background</item>
+        <item name="colorOnBackground">@color/md_blue_theme_onBackground</item>
+        <item name="colorSurface">@color/md_blue_theme_surface</item>
+        <item name="colorOnSurface">@color/md_blue_theme_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md_blue_theme_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md_blue_theme_onSurfaceVariant</item>
+        <item name="colorOutline">@color/md_blue_theme_outline</item>
+        <item name="colorOutlineVariant">@color/md_blue_theme_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/md_blue_theme_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/md_blue_theme_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/md_blue_theme_inversePrimary</item>
+        <item name="colorPrimaryFixed">@color/md_blue_theme_primaryFixed</item>
+        <item name="colorOnPrimaryFixed">@color/md_blue_theme_onPrimaryFixed</item>
+        <item name="colorPrimaryFixedDim">@color/md_blue_theme_primaryFixedDim</item>
+        <item name="colorOnPrimaryFixedVariant">@color/md_blue_theme_onPrimaryFixedVariant</item>
+        <item name="colorSecondaryFixed">@color/md_blue_theme_secondaryFixed</item>
+        <item name="colorOnSecondaryFixed">@color/md_blue_theme_onSecondaryFixed</item>
+        <item name="colorSecondaryFixedDim">@color/md_blue_theme_secondaryFixedDim</item>
+        <item name="colorOnSecondaryFixedVariant">@color/md_blue_theme_onSecondaryFixedVariant</item>
+        <item name="colorTertiaryFixed">@color/md_blue_theme_tertiaryFixed</item>
+        <item name="colorOnTertiaryFixed">@color/md_blue_theme_onTertiaryFixed</item>
+        <item name="colorTertiaryFixedDim">@color/md_blue_theme_tertiaryFixedDim</item>
+        <item name="colorOnTertiaryFixedVariant">@color/md_blue_theme_onTertiaryFixedVariant</item>
+        <item name="colorSurfaceDim">@color/md_blue_theme_surfaceDim</item>
+        <item name="colorSurfaceBright">@color/md_blue_theme_surfaceBright</item>
+        <item name="colorSurfaceContainerLowest">@color/md_blue_theme_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/md_blue_theme_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/md_blue_theme_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/md_blue_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/md_blue_theme_surfaceContainerHighest</item>
+        <item name="android:statusBarColor">@color/transparent</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Rikka.Material3</item>
+    </style>
+
+    <style name="Theme.Iseen.Sakura" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:colorForeground">@color/md_sakura_theme_primaryContainer</item>
+        <item name="colorPrimary">@color/md_sakura_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_sakura_theme_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_sakura_theme_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_sakura_theme_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/md_sakura_theme_secondary</item>
+        <item name="colorOnSecondary">@color/md_sakura_theme_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/md_sakura_theme_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md_sakura_theme_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/md_sakura_theme_tertiary</item>
+        <item name="colorOnTertiary">@color/md_sakura_theme_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md_sakura_theme_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md_sakura_theme_onTertiaryContainer</item>
+        <item name="colorError">@color/md_sakura_theme_error</item>
+        <item name="colorOnError">@color/md_sakura_theme_onError</item>
+        <item name="colorErrorContainer">@color/md_sakura_theme_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/md_sakura_theme_onErrorContainer</item>
+        <item name="android:colorBackground">@color/md_sakura_theme_background</item>
+        <item name="colorOnBackground">@color/md_sakura_theme_onBackground</item>
+        <item name="colorSurface">@color/md_sakura_theme_surface</item>
+        <item name="colorOnSurface">@color/md_sakura_theme_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md_sakura_theme_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md_sakura_theme_onSurfaceVariant</item>
+        <item name="colorOutline">@color/md_sakura_theme_outline</item>
+        <item name="colorOutlineVariant">@color/md_sakura_theme_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/md_sakura_theme_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/md_sakura_theme_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/md_sakura_theme_inversePrimary</item>
+        <item name="colorPrimaryFixed">@color/md_sakura_theme_primaryFixed</item>
+        <item name="colorOnPrimaryFixed">@color/md_sakura_theme_onPrimaryFixed</item>
+        <item name="colorPrimaryFixedDim">@color/md_sakura_theme_primaryFixedDim</item>
+        <item name="colorOnPrimaryFixedVariant">@color/md_sakura_theme_onPrimaryFixedVariant</item>
+        <item name="colorSecondaryFixed">@color/md_sakura_theme_secondaryFixed</item>
+        <item name="colorOnSecondaryFixed">@color/md_sakura_theme_onSecondaryFixed</item>
+        <item name="colorSecondaryFixedDim">@color/md_sakura_theme_secondaryFixedDim</item>
+        <item name="colorOnSecondaryFixedVariant">@color/md_sakura_theme_onSecondaryFixedVariant</item>
+        <item name="colorTertiaryFixed">@color/md_sakura_theme_tertiaryFixed</item>
+        <item name="colorOnTertiaryFixed">@color/md_sakura_theme_onTertiaryFixed</item>
+        <item name="colorTertiaryFixedDim">@color/md_sakura_theme_tertiaryFixedDim</item>
+        <item name="colorOnTertiaryFixedVariant">@color/md_sakura_theme_onTertiaryFixedVariant</item>
+        <item name="colorSurfaceDim">@color/md_sakura_theme_surfaceDim</item>
+        <item name="colorSurfaceBright">@color/md_sakura_theme_surfaceBright</item>
+        <item name="colorSurfaceContainerLowest">@color/md_sakura_theme_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/md_sakura_theme_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/md_sakura_theme_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/md_sakura_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/md_sakura_theme_surfaceContainerHighest</item>
+        <item name="android:statusBarColor">@color/transparent</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Rikka.Material3</item>
+    </style>
 </resources>

@@ -7,7 +7,7 @@
     <string name="subtitle">子标题</string>
     <string name="hint">外显</string>
     <string name="card_id">探测标识</string>
-    <string name="generate_and_signature">生成&amp;签名</string>
+    <string name="generate_and_sign">生成&amp;签名</string>
     <string name="edit_history">操控&amp;查看历史数据</string>
     <string name="content_warning">程序仅提供签名后的卡片代码，不提供卡片发送服务；如果您需要发送卡片，请自行寻找可信任的模块。由于不受开发者所能控制的因素居多（如QQ的版本更新导致现有卡片被和谐、所需服务的运营商并不稳定，出现大规模网络攻击、风控及不可抗力因素的影响），故不保证长期可用性，切勿用于非法用途并低调使用。一切开发仅供测试与学习！</string>
     <string name="content_warning_card_gen">程序仅提供签名后的卡片代码，不提供卡片发送服务；使用此功能前，您需要保证您填写的内容具有合规性及合法性。若违反相关规定，相关账号可能会被暂停使用，由于不受开发者所能控制的因素居多，故不保证长期可用性，切勿用于非法用途并低调使用。一切开发仅供测试与学习！</string>
@@ -21,7 +21,7 @@
     <string name="app_subtitle">为你的QQ添加已读检测</string>
     <string name="php_filename_disguised_as_image">探测地址</string>
     <string name="query_data_directory">监听数据存放目录(根目录留空)</string>
-    <string name="dev_description"><b>Dev: bilibili@im-cwuom</b>\n\nTelegram Group: <b><u>@cwuoms_group</u></b>\nQQ Group: <b><u>923071208</u></b>\n\n程序构建日期: 2024.4.4\n<i>(单击查看详情)</i></string>
+    <string name="dev_description"><b>Dev: bilibili@im-cwuom</b>\n\nTelegram Group: <b><u>@cwuoms_group</u></b>\nQQ Group: <b><u>923071208</u></b>\n\n程序构建日期: 2024.4.6\n<i>(单击查看详情)</i></string>
     <string name="cards_history">卡片历史</string>
     <string name="manage_cards_history">管理您之前生成过的卡片</string>
     <string name="item_card_title">监听信息</string>
@@ -36,9 +36,10 @@
     <string name="number_of_cards">共%s条历史记录</string>
     <string name="hide_mode_switch">隐匿模式(需服务端支持)</string>
     <string name="switch_hide_edit">隐藏关键输入</string>
-    <string name="card_remark">备注(留空则与标识一致)</string>
-    <string name="item_card_content">I currently don\'t know anything <![CDATA[(> <.)]]>, Try to **Get** it first !</string>
-    <string name="setting">高级设置</string>
+    <string name="card_remark">卡片备注</string>
+<!--    <string name="item_card_content">I currently don\'t know anything <![CDATA[(> <.)]]>, Try to **Get** it first !</string>-->
+    <string name="item_card_content">我现在什么也不知道呀！<![CDATA[(> <.)]]>, 试试先 **Get** 一下吧！</string>
+    <string name="setting">设置</string>
     <string name="setup_by_according_to_your_actual">可根据你的实际情况左右程序效果</string>
     <string name="hide_path_setting_hint">隐匿模式路径设置(special/kp/)</string>
     <string name="switch_display_bg">背景图片展示</string>
@@ -65,7 +66,6 @@
     <string name="profile">个人</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="auto_update_uuid">自动更新标识</string>
-
     <string name="username">\@%s</string>
     <string name="uid">唯一标识: %s</string>
     <string name="login">登录</string>
@@ -106,4 +106,32 @@
     <string name="card_f5">字段5</string>
     <string name="card_subtitle">卡片副标题</string>
     <string name="login_qzone">登录QQ空间</string>
+    <string name="Setting">设置</string>
+    <string name="ui_setting">UI 设置</string>
+    <string name="thin_mode">精简模式</string>
+    <string name="lang">语言</string>
+    <string name="theme_setting">主题设定</string>
+    <string name="default_">默认</string>
+    <string name="api_setting">API 设置</string>
+    <string name="signature_server_address">签名服务器地址</string>
+    <string name="authentication_server_address">鉴权服务器地址</string>
+    <string name="troubleshooting_debugging">故障排查/调试</string>
+    <string name="interface_usability_testing">接口可用性测试</string>
+    <string name="click_for_details">单击获取详情</string>
+    <string name="use_default_api_settings">使用默认服务器配置</string>
+    <string name="click_autofill_api_settings">单击自动填充API设置</string>
+    <string name="ui_mode">UI 模式</string>
+    <string name="hide_status_bar_below">沉浸模式</string>
+    <string name="color_sakura">樱花</string>
+    <string name="color_blue">蓝色</string>
+    <string name="title_activity_settings">SettingsActivity</string>
+    <string name="some_functions_need_to_be_restarted_to_fully_apply">因为部分功能需要重启才能完全应用</string>
+    <string name="why_didnt_it_take_effect">为什么没有生效？</string>
+    <string name="Q_and_A">常见问题</string>
+    <string name="about">关于</string>
+    <string name="hidden_warning_desc">隐藏警告不代表您可以忽略它们，我们仍有权利终止相关服务</string>
+    <string name="hidden_warning_title">隐藏警告提示</string>
+    <string name="hide_status_bar_below_desc">针对全面屏的适配，现阶段可能有问题</string>
+    <string name="thin_mode_desc">去掉一些卡片和自定义元素，保留主要功能</string>
+    <string name="classic">经典</string>
 </resources>

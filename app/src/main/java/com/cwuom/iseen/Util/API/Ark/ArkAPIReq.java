@@ -1,5 +1,8 @@
 package com.cwuom.iseen.Util.API.Ark;
 
+import static com.cwuom.iseen.Util.UtilMethod.getSignatureAPI;
+import static com.cwuom.iseen.Util.UtilMethod.parseURLComponents;
+
 import android.content.Context;
 
 import androidx.annotation.NonNull;
@@ -43,12 +46,11 @@ import okhttp3.Response;
  */
 
 public class ArkAPIReq {
-    public static String API_getArkCoinsByMid = "https://api.cwuom.love/coins_query.php?mid=";
-    public static final String API_signature = "https://ark.cwuom.love";
+    public static String endpoint_getArkCoinsByMid = "/coins_query.php?mid=";
 
-    public static String getArkCoinsByMid(String UID){
+    public static String getArkCoinsByMid(String UID, Context context){
         try {
-            URL apiUrl = new URL(API_getArkCoinsByMid+UID);
+            URL apiUrl = new URL(UtilMethod.getAuthAPI(context)+endpoint_getArkCoinsByMid+UID);
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);
@@ -117,8 +119,10 @@ public class ArkAPIReq {
         });
     }
 
-    public static void sendSignaturePostRequest(String endpoint, RequestBody body, ArkApiCallback callback) {
+    public static void sendSignaturePostRequest(String endpoint, RequestBody body, Context context, ArkApiCallback callback) {
         OkHttpClient client = new OkHttpClient();
+        String[] url_comp = parseURLComponents(getSignatureAPI(context));
+        String API_signature = String.format("%s://%s", url_comp[1], url_comp[0]);
         Request request;
         if (body != null){
              request = new Request.Builder()

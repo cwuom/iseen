@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="color_values" translatable="false">
+        <item>CLASSIC</item>
+        <item>SAKURA</item>
+        <item>MATERIAL_BLUE</item>
+    </string-array>
+
+    <string-array name="color_texts" translatable="false">
+        <item>@string/classic</item>
+        <item>@string/color_sakura</item>
+        <item>@string/color_blue</item>
+    </string-array>
+
+    <string-array name="lang_texts" translatable="false">
+        <item>简体中文</item>
+        <item>English</item>
+    </string-array>
+
+    <string-array name="lang_values" translatable="false">
+        <item>zh</item>
+        <item>en</item>
+    </string-array>
+    <!-- Reply Preference -->
+    <string-array name="reply_entries">
+        <item>Reply</item>
+        <item>Reply to all</item>
+    </string-array>
+
+    <string-array name="reply_values">
+        <item>reply</item>
+        <item>reply_all</item>
+    </string-array>
+</resources>
