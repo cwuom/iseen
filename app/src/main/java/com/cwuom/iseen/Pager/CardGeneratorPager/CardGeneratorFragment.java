@@ -1,12 +1,10 @@
 package com.cwuom.iseen.Pager.CardGeneratorPager;
 
 import static android.content.Context.MODE_PRIVATE;
-
 import static com.cwuom.iseen.Util.UtilMethod.copyToClipboard;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -88,7 +86,6 @@ public class CardGeneratorFragment extends Fragment {
 
         binding.autoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> {
             binding.btnGenerate.setEnabled(true);
-            binding.btnGenerate.setBackgroundColor(Color.parseColor("#474F7A"));
             binding.viewCut.setVisibility(View.VISIBLE);
             setCardTypeVisibility(position);
         });

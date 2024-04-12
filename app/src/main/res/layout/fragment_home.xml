@@ -217,14 +217,15 @@
                             android:layout_marginTop="@dimen/font_small_size"
                             android:background="@color/gray" />
 
-                        <Button
+                        <com.cwuom.iseen.View.LoadingButton
                             android:id="@+id/btn_generate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/view_margin_normal_spacing"
+                            app:iconGravity="textStart"
                             android:text="@string/generate_and_sign">
 
-                        </Button>
+                        </com.cwuom.iseen.View.LoadingButton>
 
                         <Button
                             android:id="@+id/btn_history"
@@ -326,13 +327,6 @@
                             android:layout_height="match_parent"
                             android:checked="true"
                             android:text="@string/auto_update_uuid"/>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switch_hide_edit"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:checked="false"
-                            android:text="@string/switch_hide_edit"/>
 
                         <LinearLayout
                             android:layout_width="wrap_content"

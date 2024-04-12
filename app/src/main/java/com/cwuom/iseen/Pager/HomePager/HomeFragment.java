@@ -25,7 +25,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.text.method.PasswordTransformationMethod;
 import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -132,13 +131,10 @@ public class HomeFragment extends Fragment {
     private String id;  // 卡片标识
     private String custom_image_url;  // 自定义图片地址
     private String php_filename;  // PHP文件名/地址
-//    private String data_dir;  // 监听数据存放目录
-    private String endpoint;  // 图片签名地址
     private String note;  // 卡片备注
     private Boolean switch_followID = Boolean.TRUE;  // 子标题是否跟随标识
     private Boolean switch_hidePhp = Boolean.TRUE;  // 是否隐藏php地址（可以把它隐藏成沙雕图）
     private Boolean switch_auto_update_uuid = Boolean.TRUE;  // 子标题是否跟随标识
-    private Boolean switch_hide_dangerous_input = Boolean.FALSE;  // 是否隐藏关键输入信息
     private Boolean switch_show_background = Boolean.TRUE;  // 是否显示背景图片
     private Boolean switch_MaskConnectionErr = Boolean.FALSE;  // 是否屏蔽连接错误的通知
     private Boolean switch_MaskTimeout = Boolean.FALSE;  // 是否屏蔽请求超时的通知
@@ -157,7 +153,6 @@ public class HomeFragment extends Fragment {
     private final ArrayList<String> listener_url = new ArrayList<>();  // 监听地址列表
     private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;  // 图片选择器 (旧android也许不兼容，Android13支持)
     private String image_uri;  // 背景图uri地址
-    private final String API_endpoint = "/get_card?title=%s&subtitle=%s&prompt=%s&cover=%s";   // API地址设置
     private final String API_GET_RES_endpoint = "/get.php?filename=%s";   // API地址设置(获取结果)
     private Snackbar snackbar = null;  // 加载snackbar
     private int req_interval = 30000;
@@ -170,9 +165,29 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         binding = FragmentHomeBinding.inflate(getLayoutInflater());
         initMethod();
+        initListeners();
 
         return binding.getRoot();
     }
+
+    private void initListeners() {
+        binding.btnRandom.setOnClickListener(v -> setRandomUuid());
+        binding.btnGenerate.setOnClickListener(v -> generateCard());
+        binding.btnSave.setOnClickListener(v -> saveConfig());
+        binding.btnRestore.setOnClickListener(v -> restoreConfig());
+        binding.btnHistory.setOnClickListener(v -> showHistoryManager());
+        binding.btnDefaultConfiguration.setOnClickListener(v -> fillDefaultConfiguration());
+        binding.id.addTextChangedListener(onIDChange());
+        binding.warningCard.setOnClickListener(v -> showWarningDialog());
+        binding.warningCard.setOnLongClickListener(v -> true);  // 没什么用的监听
+        binding.switchFollowId.setOnCheckedChangeListener((buttonView, isChecked) -> editor.putBoolean("switch_followID", isChecked).apply());
+        binding.switchHidePhp.setOnCheckedChangeListener((buttonView, isChecked) -> onSwitchHidePhpUrl(isChecked));
+        binding.switchAutoUpdateUuid.setOnCheckedChangeListener((buttonView, isChecked) -> onSwitchAutoUpdateUUID(isChecked));
+        binding.switchBackground.setOnCheckedChangeListener((buttonView, isChecked) -> onSwitchBackground(isChecked));
+        binding.btnBackgroundSetting.setOnClickListener(this::backgroundSetting);
+    }
+
+
 
     @SuppressLint("SetTextI18n")
     private void initMethod(){
@@ -268,193 +283,178 @@ public class HomeFragment extends Fragment {
 
         InitCardDataBase initCardDataBase = UtilMethod.getInstance(requireActivity());
         cardDao = initCardDataBase.cardDao();
+    }
 
 
-        // 设置随机卡片标识
-        binding.btnRandom.setOnClickListener(v -> {
-            String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
-            binding.id.setText(uuid);
-        });
+    // ----------------------------------
 
-        // 签名并生成卡片
-        binding.btnGenerate.setOnClickListener(v -> {
-            if (switch_auto_update_uuid){
-                String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
-                binding.id.setText(uuid);
-            }
+    @SuppressLint("SetTextI18n")
+    private void fillDefaultConfiguration(){
+        binding.hidePath.setText("special/kp/");
+        switch_hidePhp = Boolean.TRUE;
+        skipHiddenModeTips = true;
+        binding.switchHidePhp.setChecked(true);
+        editor.putBoolean("switch_hidePhp", true).apply();
+        save_config();
 
-            updateInputInfo();
-            String url = UtilMethod.getAuthAPI(getActivity())+php_filename+"?id="+id+".png";
-            if (binding.switchHidePhp.isChecked()){
-                url = UtilMethod.getAuthAPI(getActivity())+hidePath+id+".png";
-            }
-            endpoint = String.format(API_endpoint, title, subtitle, yx, url);
-            String img = Objects.requireNonNull(binding.customImage.getText()).toString();
-            if (!img.isEmpty()){
-                endpoint += "/" + Base64.encodeToString(img.getBytes(), Base64.NO_WRAP);
-            }
+        String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
+        binding.id.setText(uuid);
+        ShowSnackbar("默认服务器配置已填充~", requireActivity(), bottomNavigationView);
+        skipHiddenModeTips = false;
+    }
 
-            String cardListenerUrl = getAuthAPI(getActivity()) + String.format(API_GET_RES_endpoint, id+".png.txt");
-            if (binding.switchHidePhp.isChecked()){  // 开启了隐匿模式，查询地址会发生变化
-                cardListenerUrl = getAuthAPI(getActivity()) + String.format(API_GET_RES_endpoint, id+".txt");
-            }
-            if (!JudgmentListenerRepetition(cardListenerUrl)){ // 判断是否重复
-                Snackbar snackbar_loading = ShowLoadingSnackbar("正在提交数据并签名，请稍等..", binding.getRoot(), bottomNavigationView);
-                ArkAPIReq.sendSignaturePostRequest(endpoint, null, getApplicationContext(), new ArkApiCallback() {
-                    @Override
-                    public void onSuccess(String result) {
-                        card_data = result;
-                        handler.sendEmptyMessage(HANDLER_MESSAGE_SHOW_CARD_DATA);
-                        snackbar_loading.dismiss();
-                    }
+    private void onSwitchHidePhpUrl(boolean isChecked){
+        editor.putBoolean("switch_hidePhp", false);
+        editor.apply();
+        if (isChecked && !skipHiddenModeTips){
+            new MaterialAlertDialogBuilder(requireActivity())
+                    .setTitle("并不是所有服务器都支持这个特性！")
+                    .setMessage("开启后，程序生成的卡片代码将不包含自己的php地址，这可以一定程度的防止他人抓包。需要他工作的前提是服务端需要在nginx规则里设置如下代码，如\nlocation ~* ^/special/kp/(.*)\\.png$ {\n" +
+                            "    rewrite ^/special/kp/(.*)\\.png$ /kp.php?id=$1 last;\n" +
+                            "}\n否则卡片代码将无法正常工作以满足最初的需求。若您已经做好配置，开启后可在按钮下方键入伪装路径(如special/kp/)")
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        requireActivity().runOnUiThread(() -> new MaterialAlertDialogBuilder(requireActivity())
-                                .setTitle("出了点问题！")
-                                .setMessage("请求失败: " + e.getMessage())
-                                .setPositiveButton("好", null)
-                                .show());
-                        snackbar_loading.dismiss();
-                    }
-                });
-            } else {
-                ShowSnackbar("相同标识的卡片已经存在，请更换标识。", requireActivity(), bottomNavigationView);
-            }
-        });
+                    .setNeutralButton("关闭此选项", (dialog, which) -> binding.switchHidePhp.setChecked(false))
+                    .setPositiveButton("仍要开启", (dialog, which) -> {
+                        editor.putBoolean("switch_hidePhp", true).apply();
+                        binding.textFieldHidePath.setVisibility(View.VISIBLE);
+                    })
+                    .show();
+        } else {
+            binding.textFieldHidePath.setVisibility(View.GONE);
+        }
 
-        // 保存卡片配置
-        binding.btnSave.setOnClickListener(v -> {
-            save_config();
-            ShowSnackbar("配置已保存！", requireActivity(), bottomNavigationView);
-        });
+        if (skipHiddenModeTips){
+            binding.textFieldHidePath.setVisibility(View.VISIBLE);
+        }
+    }
 
-        // 恢复卡片配置
-        binding.btnRestore.setOnClickListener(v -> {
-            configRestore();
-            ShowSnackbar("配置已恢复！", requireActivity(), bottomNavigationView);
-        });
+    private void onSwitchBackground(boolean isChecked){
+        editor.putBoolean("showBackground", isChecked).apply();
+        if (isChecked){
+            binding.background.setVisibility(View.VISIBLE);
+            binding.btnBackgroundSetting.setVisibility(View.VISIBLE);
+        } else {
+            binding.background.setVisibility(View.GONE);
+            binding.btnBackgroundSetting.setVisibility(View.GONE);
+        }
+    }
 
-        // 填充默认服务器设置
-        binding.btnDefaultConfiguration.setOnClickListener(new View.OnClickListener() {
-            @SuppressLint("SetTextI18n")
+    private void onSwitchAutoUpdateUUID(boolean isChecked){
+        editor.putBoolean("switch_auto_update_uuid", isChecked).apply();
+        switch_auto_update_uuid = isChecked;
+    }
+
+    private TextWatcher onIDChange(){
+        return new TextWatcher() {
             @Override
-            public void onClick(View v) {
-                binding.dataDirectory.setText("kpData");
-                binding.hidePath.setText("special/kp/");
-                switch_hidePhp = Boolean.TRUE;
-                skipHiddenModeTips = true;
-                binding.switchHidePhp.setChecked(true);
-                editor.putBoolean("switch_hidePhp", true).apply();
-                save_config();
-
-                String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
-                binding.id.setText(uuid);
-                ShowSnackbar("默认服务器配置已填充~", requireActivity(), bottomNavigationView);
-                skipHiddenModeTips = false;
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
-        });
-
-        // 监听卡片标识的变化
-        binding.id.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (binding.switchFollowId.isChecked()){
+                if (binding.switchFollowId.isChecked()) {
                     binding.subtitle.setText(s);
                 }
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
+        };
+    }
+
+    private void restoreConfig() {
+        configRestore();
+        ShowSnackbar("配置已恢复！", requireActivity(), bottomNavigationView);
+    }
+
+    private void saveConfig() {
+        save_config();
+        ShowSnackbar("配置已保存！", requireActivity(), bottomNavigationView);
+    }
+
+    private void setRandomUuid(){
+        String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
+        binding.id.setText(uuid);
+    }
+
+    private void generateCard() {
+        if (switch_auto_update_uuid){
+            String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
+            binding.id.setText(uuid);
+        }
+
+        updateInputInfo();
+        String url = UtilMethod.getAuthAPI(getActivity())+php_filename+"?id="+id+".png";
+        if (binding.switchHidePhp.isChecked()){
+            url = UtilMethod.getAuthAPI(getActivity())+hidePath+id+".png";
+        }
+        // API地址设置
+        String API_endpoint = "/get_card?title=%s&subtitle=%s&prompt=%s&cover=%s";
+        //    private String data_dir;  // 监听数据存放目录
+        // 图片签名地址
+        String endpoint = String.format(API_endpoint, title, subtitle, yx, url);
+        String img = Objects.requireNonNull(binding.customImage.getText()).toString();
+        if (!img.isEmpty()){
+            endpoint += "/" + Base64.encodeToString(img.getBytes(), Base64.NO_WRAP);
+        }
+
+        String cardListenerUrl = getAuthAPI(getActivity()) + String.format(API_GET_RES_endpoint, id+".png.txt");
+        if (binding.switchHidePhp.isChecked()){  // 开启了隐匿模式，查询地址会发生变化
+            cardListenerUrl = getAuthAPI(getActivity()) + String.format(API_GET_RES_endpoint, id+".txt");
+        }
+        if (!JudgmentListenerRepetition(cardListenerUrl)){ // 判断是否重复
+            binding.btnGenerate.setLoading(true);
+            ArkAPIReq.sendSignaturePostRequest(endpoint, null, getApplicationContext(), new ArkApiCallback() {
+                @Override
+                public void onSuccess(String result) {
+                    card_data = result;
+                    handler.sendEmptyMessage(HANDLER_MESSAGE_SHOW_CARD_DATA);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    requireActivity().runOnUiThread(() -> new MaterialAlertDialogBuilder(requireActivity())
+                            .setTitle("出了点问题！")
+                            .setMessage("请求失败: " + e.getMessage())
+                            .setPositiveButton("好", null)
+                            .show());
+                    requireActivity().runOnUiThread(() -> binding.btnGenerate.setLoading(false));
+                }
+            });
+        } else {
+            ShowSnackbar("相同标识的卡片已经存在，请更换标识。", requireActivity(), bottomNavigationView);
+        }
+    }
+
+    private void backgroundSetting(View v){
+        PopupMenu popupMenu = new PopupMenu(requireActivity(), v);
+        popupMenu.getMenuInflater().inflate(R.menu.bg_setting_menu, popupMenu.getMenu());
+        popupMenu.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.item_use_default_background){
+                editor.remove("image_uri").apply();
+                binding.background.setImageResource(R.drawable.neri);
+            }
+            if (id == R.id.item_choose_background){
+                pickMedia.launch(new PickVisualMediaRequest.Builder()
+                        .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                        .build());
+            }
+            return false;
         });
+        popupMenu.show();
+    }
 
-
-        binding.warningCard.setOnClickListener(v -> new MaterialAlertDialogBuilder(requireActivity())
+    private void showWarningDialog() {
+        new MaterialAlertDialogBuilder(requireActivity())
                 .setTitle("戳我没用啦~")
                 .setMessage("这只是让你阅读的，当然非常感谢你能成功注意到这个卡片。")
                 .setPositiveButton("好！", null)
-                .show());
-
-        binding.warningCard.setOnLongClickListener(v -> true);  // 没什么用的监听
-
-        binding.btnHistory.setOnClickListener(v -> showHistoryManager());  // 弹出历史管理
-
-        binding.switchFollowId.setOnCheckedChangeListener((buttonView, isChecked) -> editor.putBoolean("switch_followID", isChecked).apply());
-        binding.switchHidePhp.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            editor.putBoolean("switch_hidePhp", false);
-            editor.apply();
-            if (isChecked && !skipHiddenModeTips){
-                new MaterialAlertDialogBuilder(requireActivity())
-                        .setTitle("并不是所有服务器都支持这个特性！")
-                        .setMessage("开启后，程序生成的卡片代码将不包含自己的php地址，这可以一定程度的防止他人抓包。需要他工作的前提是服务端需要在nginx规则里设置如下代码，如\nlocation ~* ^/special/kp/(.*)\\.png$ {\n" +
-                                "    rewrite ^/special/kp/(.*)\\.png$ /kp.php?id=$1 last;\n" +
-                                "}\n否则卡片代码将无法正常工作以满足最初的需求。若您已经做好配置，开启后可在按钮下方键入伪装路径(如special/kp/)")
-
-                        .setNeutralButton("关闭此选项", (dialog, which) -> binding.switchHidePhp.setChecked(false))
-                        .setPositiveButton("仍要开启", (dialog, which) -> {
-                            editor.putBoolean("switch_hidePhp", true).apply();
-                            binding.textFieldHidePath.setVisibility(View.VISIBLE);
-                        })
-                        .show();
-            } else {
-                binding.textFieldHidePath.setVisibility(View.GONE);
-            }
-
-            if (skipHiddenModeTips){
-                binding.textFieldHidePath.setVisibility(View.VISIBLE);
-            }
-        });
-
-        binding.switchAutoUpdateUuid.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            editor.putBoolean("switch_auto_update_uuid", isChecked).apply();
-            switch_auto_update_uuid = isChecked;
-        });
-
-        binding.switchHideEdit.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                hideDangerousInput();
-            } else {
-                binding.dataDirectory.setTransformationMethod(null);
-            }
-
-            editor.putBoolean("switch_hide_edit", isChecked);
-            editor.apply();
-        });
-
-
-        binding.switchBackground.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            editor.putBoolean("showBackground", isChecked).apply();
-            if (isChecked){
-                binding.background.setVisibility(View.VISIBLE);
-                binding.btnBackgroundSetting.setVisibility(View.VISIBLE);
-            } else {
-                binding.background.setVisibility(View.GONE);
-                binding.btnBackgroundSetting.setVisibility(View.GONE);
-            }
-        });
-
-        binding.btnBackgroundSetting.setOnClickListener(v -> {
-            PopupMenu popupMenu = new PopupMenu(requireActivity(), v);
-            popupMenu.getMenuInflater().inflate(R.menu.bg_setting_menu, popupMenu.getMenu());
-            popupMenu.setOnMenuItemClickListener(item -> {
-                int id = item.getItemId();
-                if (id == R.id.item_use_default_background){
-                    editor.remove("image_uri").apply();
-                    binding.background.setImageResource(R.drawable.neri);
-                }
-                if (id == R.id.item_choose_background){
-                    pickMedia.launch(new PickVisualMediaRequest.Builder()
-                            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
-                            .build());
-                }
-                return false;
-            });
-            popupMenu.show();
-        });
+                .show();
     }
+
+    // ----------------------------------
 
     /**
      * 将临时uri转换为永久uri
@@ -507,154 +507,157 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * 隐藏关键输入信息
-     */
-    void hideDangerousInput(){
-        binding.dataDirectory.setTransformationMethod(new PasswordTransformationMethod());
-    }
-
-    /**
      * 显示卡片历史管理器
      */
     void showHistoryManager(){
         FullScreenDialog.show(new OnBindView<FullScreenDialog>(R.layout.layout_history) {
             @Override
             public void onBind(FullScreenDialog dialog, View v) {
-                v.findViewById(R.id.btn_go_back).setOnClickListener(v1 -> dialog.dismiss());
-                TextView tv_no_card = v.findViewById(R.id.no_card);
-                RecyclerView rv_card_list = v.findViewById(R.id.card_list);
-                TextView tv_count = v.findViewById(R.id.number_of_cards);
-                TextView tv_more_options = v.findViewById(R.id.more_options);
-                List<EntityCard> localCard = getLocalCardHistory();
-                if (localCard != null && !localCard.isEmpty()){
-                    tv_count.setText(getString(R.string.number_of_cards, Objects.requireNonNull(localCard).size()+""));
-                    ArrayList<EntityCardHistory> list = entityCardToEntityCardHistory(localCard);
-                    CardHistoryAdapter cardHistoryAdapter = new CardHistoryAdapter(list, requireActivity(), count -> {
-                        if (count > 0) {
-                            tv_count.setText(getString(R.string.number_of_cards, count + ""));
-                        } else {
-                            tv_count.setText("");
-                            tv_no_card.setVisibility(View.VISIBLE);
-                        }
+                setupHistoryManagerUI(dialog, v);
+            }
+        }).show();
+    }
 
-                    }, (action, entityCard, entityCardHistory, pos) -> doAction(action, entityCard, entityCardHistory, pos, rv_card_list));
-                    rv_card_list.setAdapter(cardHistoryAdapter);
-                    rv_card_list.setLayoutManager(new LinearLayoutManager(requireActivity(), LinearLayoutManager.VERTICAL, false){
-                        @Override
-                        public boolean canScrollVertically() {
-                            return false; // 禁用滑动，防止与ScrollView冲突。
-                        }
-                    });
+    void setupHistoryManagerUI(FullScreenDialog dialog, View v){
+        v.findViewById(R.id.btn_go_back).setOnClickListener(v1 -> dialog.dismiss());
+        TextView tv_no_card = v.findViewById(R.id.no_card);
+        RecyclerView rv_card_list = v.findViewById(R.id.card_list);
+        TextView tv_count = v.findViewById(R.id.number_of_cards);
+        TextView tv_more_options = v.findViewById(R.id.more_options);
+        List<EntityCard> localCard = getLocalCardHistory();
+        if (localCard != null && !localCard.isEmpty()){
+            tv_count.setText(getString(R.string.number_of_cards, Objects.requireNonNull(localCard).size()+""));
+            ArrayList<EntityCardHistory> list = entityCardToEntityCardHistory(localCard);
+            CardHistoryAdapter cardHistoryAdapter = new CardHistoryAdapter(list, requireActivity(), count -> {
+                if (count > 0) {
+                    tv_count.setText(getString(R.string.number_of_cards, count + ""));
                 } else {
                     tv_count.setText("");
                     tv_no_card.setVisibility(View.VISIBLE);
                 }
 
-                tv_more_options.setOnClickListener(v14 -> {
-                    PopupMenu popupMenu = new PopupMenu(requireActivity(), v14);
-                    popupMenu.getMenuInflater().inflate(R.menu.history_manage_menu, popupMenu.getMenu());
-                    popupMenu.setOnMenuItemClickListener(item -> {
-                        int id = item.getItemId();
-                        if (id == R.id.item_set_2fa_verify_url){
-                            new InputDialog("键入您的验证服务器地址", "请先输入验证服务器地址(格式: https://example.com/del.php?verify=)，点击‘好’后自动保存。请严格按照格式要求填写，错误的填写也许会造成闪退等预期之外的问题。", "好", "取消")
-                                    .setCancelable(false)
-                                    .setOkButton((baseDialog, v131, server) -> {
-                                        editor.putString("auth_server", server);
-                                        editor.apply();
-                                        return false;
-                                    })
-                                    .show();
-                        }
-                        if (id == R.id.item_del_all_on_server){
-                            new InputDialog("您需要先通过2FA验证", "默认您已填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
-                                    .setCancelable(false)
-                                    .setOkButton((baseDialog, v12, code) -> {
-                                        String url = sharedPreferences.getString("auth_server", "");
-                                        if (!url.isEmpty()){
-                                            OkHttpClient client = new OkHttpClient();
-                                            Request request = new Request.Builder()
-                                                    .url(url+code)
-                                                    .build();
-                                            Call call = client.newCall(request);
-                                            call.enqueue(new Callback() {
-                                                @Override
-                                                public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                                                    if (e instanceof SocketTimeoutException){
-                                                        handler.sendEmptyMessage(HANDLER_MESSAGE_TIMEOUT);
-                                                    }
-                                                    if (e instanceof ConnectException){
-                                                        handler.sendEmptyMessage(HANDLER_MESSAGE_CONNECTION_ERR);
-                                                    }
-                                                }
-                                                @Override
-                                                public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                                                    res_2fa_callback = Objects.requireNonNull(response.body()).string();
-                                                    handler.sendEmptyMessage(HANDLER_MESSAGE_SERVER_REPLY);
-                                                }
-                                            });
-                                        } else {
-                                            UtilMethod.showDialog("无法建立连接", "验证服务器地址未配置！", requireActivity());
-                                        }
+            }, (action, entityCard, entityCardHistory, pos) -> doAction(action, entityCard, entityCardHistory, pos, rv_card_list));
+            rv_card_list.setAdapter(cardHistoryAdapter);
+            rv_card_list.setLayoutManager(new LinearLayoutManager(requireActivity(), LinearLayoutManager.VERTICAL, false){
+                @Override
+                public boolean canScrollVertically() {
+                    return false; // 禁用滑动，防止与ScrollView冲突。
+                }
+            });
+        } else {
+            tv_count.setText("");
+            tv_no_card.setVisibility(View.VISIBLE);
+        }
 
-                                        return false;
-                                    })
-                                    .show();
-                        }
-                        if (id == R.id.item_del_all_on_local){
-                            new MaterialAlertDialogBuilder(v14.getContext())
-                                    .setTitle("确认删除所有卡片么？")
-                                    .setMessage("删除所有卡片后在本地不可恢复，但服务器上的文件不会一并清除。您仍有权限可通过指定网页链接对其进行访问！")
-                                    .setNeutralButton("手滑了..", null)
-                                    .setPositiveButton("确认删除", (dialog1, which) -> {
-                                        cardDao.deleteAll();
-                                        tv_count.setText("");
-                                        rv_card_list.setAdapter(null);
-                                        tv_no_card.setVisibility(View.VISIBLE);
-                                    })
-                                    .show();
-                        }
-                        if (id == R.id.item_push_setup){
-                            BottomDialog.show("", "",
-                                    new OnBindView<BottomDialog>(R.layout.layout_notification_settings) {
-                                        @SuppressLint("SetTextI18n")
-                                        @Override
-                                        public void onBind(BottomDialog dialog12, View v14) {
-                                            EditText mEtInterval = v14.findViewById(R.id.interval);
-                                            Button mBtnSave = v14.findViewById(R.id.btn_save_and_apply);
-                                            MaterialSwitch mSwitchMaskTimeout = v14.findViewById(R.id.switch_mask_request_timeout_notification);
-                                            MaterialSwitch mSwitchMaskConnectionErr = v14.findViewById(R.id.switch_mask_request_err_notification);
-                                            mEtInterval.setText((req_interval / 1000) + "");
-                                            mSwitchMaskTimeout.setChecked(switch_MaskTimeout);
-                                            mSwitchMaskConnectionErr.setChecked(switch_MaskConnectionErr);
-                                            mBtnSave.setOnClickListener(v13 -> {
-                                                try {
-                                                    req_interval = Integer.parseInt(String.valueOf(mEtInterval.getText())) * 1000;
-                                                    editor.putInt("req_interval", req_interval).apply();
-                                                } catch (NumberFormatException e) {
-                                                    UtilMethod.showDialog("无法处理输入的数据", "请输入一个整数，单位秒。", requireActivity());
-                                                }
-                                            });
+        tv_more_options.setOnClickListener(v14 -> {
+            PopupMenu popupMenu = new PopupMenu(requireActivity(), v14);
+            popupMenu.getMenuInflater().inflate(R.menu.history_manage_menu, popupMenu.getMenu());
+            popupMenu.setOnMenuItemClickListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.item_set_2fa_verify_url){
+                    new InputDialog("键入您的验证服务器地址", "请先输入验证服务器地址(格式: https://example.com/del.php?verify=)，点击‘好’后自动保存。请严格按照格式要求填写，错误的填写也许会造成闪退等预期之外的问题。", "好", "取消")
+                            .setCancelable(false)
+                            .setOkButton((baseDialog, v131, server) -> {
+                                editor.putString("auth_server", server);
+                                editor.apply();
+                                return false;
+                            })
+                            .show();
+                }
+                if (id == R.id.item_del_all_on_server){
+                    onDelAllOnServer();
+                }
+                if (id == R.id.item_del_all_on_local){
+                    new MaterialAlertDialogBuilder(v14.getContext())
+                            .setTitle("确认删除所有卡片么？")
+                            .setMessage("删除所有卡片后在本地不可恢复，但服务器上的文件不会一并清除。您仍有权限可通过指定网页链接对其进行访问！")
+                            .setNeutralButton("手滑了..", null)
+                            .setPositiveButton("确认删除", (dialog1, which) -> {
+                                cardDao.deleteAll();
+                                tv_count.setText("");
+                                rv_card_list.setAdapter(null);
+                                tv_no_card.setVisibility(View.VISIBLE);
+                            })
+                            .show();
+                }
+                if (id == R.id.item_push_setup){
+                    onPushSetup();
+                    return true;
+                }
+                return false;
+            });
+            popupMenu.show();
+        });
+    }
 
-                                            mSwitchMaskConnectionErr.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                                                switch_MaskConnectionErr = isChecked;
-                                                editor.putBoolean("switchMaskConnectionErr", isChecked).apply();
-                                            });
-
-                                            mSwitchMaskTimeout.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                                                switch_MaskTimeout = isChecked;
-                                                editor.putBoolean("switchMaskTimeout", isChecked).apply();
-                                            });
-                                        }
-                                    });
-                            return true;
+    void onDelAllOnServer(){
+        new InputDialog("您需要先通过2FA验证", "默认您已填入对应的验证地址。操作前先要确认您是服务器管理员，在下方键入验证代码才能进行下一步操作。如果您的访客，非常抱歉，您无权更改服务器数据！", "验证", "取消")
+            .setCancelable(false)
+            .setOkButton((baseDialog, v12, code) -> {
+                String url = sharedPreferences.getString("auth_server", "");
+                if (!url.isEmpty()){
+                    OkHttpClient client = new OkHttpClient();
+                    Request request = new Request.Builder()
+                            .url(url+code)
+                            .build();
+                    Call call = client.newCall(request);
+                    call.enqueue(new Callback() {
+                        @Override
+                        public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                            if (e instanceof SocketTimeoutException){
+                                handler.sendEmptyMessage(HANDLER_MESSAGE_TIMEOUT);
+                            }
+                            if (e instanceof ConnectException){
+                                handler.sendEmptyMessage(HANDLER_MESSAGE_CONNECTION_ERR);
+                            }
                         }
-                        return false;
+                        @Override
+                        public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                            res_2fa_callback = Objects.requireNonNull(response.body()).string();
+                            handler.sendEmptyMessage(HANDLER_MESSAGE_SERVER_REPLY);
+                        }
                     });
-                    popupMenu.show();
-                });
+                } else {
+                    UtilMethod.showDialog("无法建立连接", "验证服务器地址未配置！", requireActivity());
+                }
 
-            }
-        }).show();
+                return false;
+            })
+            .show();
+    }
+    void onPushSetup(){
+        BottomDialog.show("", "",
+            new OnBindView<BottomDialog>(R.layout.layout_notification_settings) {
+                @SuppressLint("SetTextI18n")
+                @Override
+                public void onBind(BottomDialog dialog12, View v14) {
+                    EditText mEtInterval = v14.findViewById(R.id.interval);
+                    Button mBtnSave = v14.findViewById(R.id.btn_save_and_apply);
+                    MaterialSwitch mSwitchMaskTimeout = v14.findViewById(R.id.switch_mask_request_timeout_notification);
+                    MaterialSwitch mSwitchMaskConnectionErr = v14.findViewById(R.id.switch_mask_request_err_notification);
+                    mEtInterval.setText((req_interval / 1000) + "");
+                    mSwitchMaskTimeout.setChecked(switch_MaskTimeout);
+                    mSwitchMaskConnectionErr.setChecked(switch_MaskConnectionErr);
+                    mBtnSave.setOnClickListener(v13 -> {
+                        try {
+                            req_interval = Integer.parseInt(String.valueOf(mEtInterval.getText())) * 1000;
+                            editor.putInt("req_interval", req_interval).apply();
+                        } catch (NumberFormatException e) {
+                            UtilMethod.showDialog("无法处理输入的数据", "请输入一个整数，单位秒。", requireActivity());
+                        }
+                    });
+
+                    mSwitchMaskConnectionErr.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                        switch_MaskConnectionErr = isChecked;
+                        editor.putBoolean("switchMaskConnectionErr", isChecked).apply();
+                    });
+
+                    mSwitchMaskTimeout.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                        switch_MaskTimeout = isChecked;
+                        editor.putBoolean("switchMaskTimeout", isChecked).apply();
+                    });
+                }
+            });
     }
 
     /**
@@ -741,21 +744,7 @@ public class HomeFragment extends Fragment {
                             EntityCallbackContent entity = list.get(index);
                             BottomMenu.show(new String[] {"点击下方信息进行复制", entity.getTime(), entity.getIp(), entity.getRegion(), entity.getUserAgent(), "-----------", "使用其它API查询此IP"})
                                     .setOnMenuItemClickListener((dialog1, text1, index1) -> {
-                                        if (text1 == entity.getIp()){
-                                            copyToClipboard(entity.getIp(), requireActivity());
-                                        }
-                                        if (text1 == entity.getTime()){
-                                            copyToClipboard(entity.getTime(), requireActivity());
-                                        }
-                                        if (text1 == entity.getRegion()){
-                                            copyToClipboard(entity.getRegion(), requireActivity());
-                                        }
-                                        if (text1 == entity.getUserAgent()){
-                                            copyToClipboard(entity.getUserAgent(), requireActivity());
-                                        }
-                                        if (text1 == "使用其它API查询此IP"){
-                                            getIPQueryRes(entity.getIp());
-                                        }
+                                        clickToCopy(String.valueOf(text1), entity);
                                         return true;
                                     });
                             return true;
@@ -766,6 +755,73 @@ public class HomeFragment extends Fragment {
         }
     }
 
+    void clickToCopy(String text, EntityCallbackContent entity){
+        if (Objects.equals(text, entity.getIp())){
+            copyToClipboard(entity.getIp(), requireActivity());
+        }
+        if (Objects.equals(text, entity.getTime())){
+            copyToClipboard(entity.getTime(), requireActivity());
+        }
+        if (Objects.equals(text, entity.getRegion())){
+            copyToClipboard(entity.getRegion(), requireActivity());
+        }
+        if (Objects.equals(text, entity.getUserAgent())){
+            copyToClipboard(entity.getUserAgent(), requireActivity());
+        }
+        if (Objects.equals(text, "使用其它API查询此IP")){
+            getIPQueryRes(entity.getIp());
+        }
+    }
+
+    void startListener(EntityCard card, String[] temp){
+        ArkAPIReq.getArkListenerReturn(
+                card.getCardListenerUrl(),
+                getApplicationContext(),
+                true,
+                new ArkApiCallback() {
+                    @Override
+                    public void onSuccess(String result) {
+                        String contents = replaceLastNewline(result, "");
+                        ArrayList<EntityCallbackContent> list = new ArrayList<>();
+                        for (String content : contents.split("\n\n")){
+                            String[] res = content.split("\n");
+                            for (int i = 0; i < res.length; i++) {
+                                if (res[i].startsWith("## ")) {
+                                    res[i] = res[i].substring(3);
+                                } else if (res[i].startsWith("- ")) {
+                                    res[i] = res[i].substring(2);
+                                }
+                            }
+                            if (res.length == 4){
+                                list.add(new EntityCallbackContent(res[0], res[1], res[2], res[3]));
+                            }
+                        }
+                        result = "";
+                        for (EntityCallbackContent content : list){
+                            result = content.getIp() + " | " + content.getRegion() + "\n";
+                        }
+
+                        if (!result.equals(temp[0])){
+                            push_listen_res(card.getCardNote(), result.replace(temp[0], ""), 0);
+                        }
+                        temp[0] = result;
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            if (e instanceof SocketTimeoutException){
+                                push_listen_res("监听超时", "监听地址连接超时，请检查网络设置...", 1);
+                            }
+                            if (e instanceof ConnectException){
+                                push_listen_res("连接错误", "监听地址无法返回正确数据，请检查网络设置...", 2);
+                            }
+                        });
+                    }
+                }
+        );
+    }
+
     /**
      * 处理卡片监听事件
      * @param card 卡片实体类
@@ -774,53 +830,7 @@ public class HomeFragment extends Fragment {
         Thread thread = new Thread(() -> {
             final String[] temp = {""};
             while (!Thread.currentThread().isInterrupted()){
-                ArkAPIReq.getArkListenerReturn(
-                        card.getCardListenerUrl(),
-                        getApplicationContext(),
-                        true,
-                        new ArkApiCallback() {
-                            @Override
-                            public void onSuccess(String result) {
-                                String contents = replaceLastNewline(result, "");
-                                ArrayList<EntityCallbackContent> list = new ArrayList<>();
-                                for (String content : contents.split("\n\n")){
-                                    String[] res = content.split("\n");
-                                    for (int i = 0; i < res.length; i++) {
-                                        if (res[i].startsWith("## ")) {
-                                            res[i] = res[i].substring(3);
-                                        } else if (res[i].startsWith("- ")) {
-                                            res[i] = res[i].substring(2);
-                                        }
-                                    }
-                                    if (res.length == 4){
-                                        list.add(new EntityCallbackContent(res[0], res[1], res[2], res[3]));
-                                    }
-                                }
-                                result = "";
-                                for (EntityCallbackContent content : list){
-                                    result = content.getIp() + " | " + content.getRegion() + "\n";
-                                }
-
-                                if (!result.equals(temp[0])){
-                                    push_listen_res(card.getCardNote(), result.replace(temp[0], ""), 0);
-                                }
-                                temp[0] = result;
-                            }
-
-                            @Override
-                            public void onFailure(Exception e) {
-                                new Handler(Looper.getMainLooper()).post(() -> {
-                                    if (e instanceof SocketTimeoutException){
-                                        push_listen_res("监听超时", "监听地址连接超时，请检查网络设置...", 1);
-                                    }
-                                    if (e instanceof ConnectException){
-                                        push_listen_res("连接错误", "监听地址无法返回正确数据，请检查网络设置...", 2);
-                                    }
-                                });
-                            }
-                        }
-                );
-
+                startListener(card, temp);
                 try {
                     throwInMethod();
                 } catch (InterruptedException e) {
@@ -939,11 +949,6 @@ public class HomeFragment extends Fragment {
         if (switch_hidePhp){
             binding.textFieldHidePath.setVisibility(View.VISIBLE);
         }
-        binding.switchHideEdit.setChecked(switch_hide_dangerous_input);
-        if (switch_hide_dangerous_input){
-            hideDangerousInput();
-        }
-
         if (image_uri != null && !image_uri.isEmpty()){
             binding.background.setImageURI(Uri.parse(image_uri));
         }
@@ -968,7 +973,6 @@ public class HomeFragment extends Fragment {
         switch_followID = sharedPreferences.getBoolean("switch_followID",false);
         switch_hidePhp = sharedPreferences.getBoolean("switch_hidePhp",false);
         switch_auto_update_uuid = sharedPreferences.getBoolean("switch_auto_update_uuid",true);
-        switch_hide_dangerous_input = sharedPreferences.getBoolean("switch_hide_edit",false);
         switch_show_background = sharedPreferences.getBoolean("showBackground",false);
         image_uri = sharedPreferences.getString("image_uri",null);
         req_interval = sharedPreferences.getInt("req_interval",30000);
@@ -1069,6 +1073,8 @@ public class HomeFragment extends Fragment {
                         .setMessage(card_data)
                         .setPositiveButton("好", null)
                         .show();
+
+                binding.btnGenerate.setLoading(false);
 
                 String cardData = card_data;
                 String filename = id+".png.txt";

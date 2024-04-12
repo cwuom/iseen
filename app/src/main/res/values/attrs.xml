@@ -9,4 +9,9 @@
         <attr name="progFirstColor" format="color" />   <!--进度圆环结束颜色-->
         <attr name="progress" format="integer" />       <!--圆环进度-->
     </declare-styleable>
+
+    <declare-styleable name="LoadingButton">
+        <attr name="android:text"/>
+    </declare-styleable>
+
 </resources>
