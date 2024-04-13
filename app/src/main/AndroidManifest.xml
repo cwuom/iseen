@@ -21,7 +21,7 @@
             android:exported="false"
             android:label="@string/title_activity_settings" />
         <activity
-            android:name=".QzoneActivity"
+            android:name=".QZoneActivity"
             android:exported="false" />
         <activity
             android:name=".LoginActivity"

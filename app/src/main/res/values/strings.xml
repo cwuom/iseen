@@ -134,4 +134,13 @@
     <string name="hide_status_bar_below_desc">针对全面屏的适配，现阶段可能有问题</string>
     <string name="thin_mode_desc">去掉一些卡片和自定义元素，保留主要功能</string>
     <string name="classic">经典</string>
+    <string name="account_setting">账号设置</string>
+    <string name="QQ_account">QQ账户</string>
+    <string name="QQ_password">QQ密码</string>
+    <string name="save_template">保存模板</string>
+    <string name="fill_template">填充模板</string>
+    <string name="disclaimer_content">在使用 iseen 软件（以下简称“软件”）之前，请仔细阅读并理解以下条款：\n\n<b>API使用</b>: 软件调用了第三方API，这些API的使用仅限于软件内部，与API的作者无关。我们对这些API的任何问题或故障不承担任何责任。\n<b>用户责任</b>: 使用软件的用户需对自己的行为负责，包括但不限于数据输入、输出和操作。软件作者不对因使用软件导致的任何直接或间接损失承担责任。\n<b>知识产权</b>: 所有通过此软件获取的信息和内容都受到版权、商标和其他相关法律的保护。未经授权的复制、分发或使用可能违反法律。\n<b>免责声明</b>: 我们尽力确保软件的正常运作，但无法保证其永久可用或完全无误。因此，您应对任何由于软件中断、延迟、错误、故障或其他问题导致的损失承担责任。\n<b>隐私政策</b>: 我们尊重用户的隐私权，不会收集、使用或披露您的个人信息，除非法律要求或经您明确同意。\n\n请注意，本免责声明可能随时更新，请定期查看最新版本。通过使用 iseen 软件，您同意遵守上述条款和条件。</string>
+    <string name="disclaimer">免责声明</string>
+    <string name="apply_now">立即应用 UI 设置</string>
+    <string name="recreate">这将重载所有的 Fragment</string>
 </resources>

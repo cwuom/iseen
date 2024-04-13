@@ -118,13 +118,15 @@ public class NavigationActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void configureStatusBarBelow() {
         Window window = getWindow();
-        window.setStatusBarColor(Color.TRANSPARENT); // 透明状态栏
+        window.setStatusBarColor(Color.TRANSPARENT);
 
-        // 请求系统的WindowInsets
         View decorView = window.getDecorView();
         decorView.setOnApplyWindowInsetsListener((view, windowInsets) -> {
-            int insetTop = windowInsets.getSystemWindowInsetTop(); // 状态栏的高度
-            view.setPadding(view.getPaddingLeft(), insetTop, view.getPaddingRight(), view.getPaddingBottom());
+            int insetTop = windowInsets.getSystemWindowInsetTop();
+            View mainContent = findViewById(R.id.navFragment);
+            if (mainContent != null) {
+                mainContent.setPadding(mainContent.getPaddingLeft(), insetTop, mainContent.getPaddingRight(), mainContent.getPaddingBottom());
+            }
             return windowInsets.consumeSystemWindowInsets();
         });
 
@@ -195,6 +197,11 @@ public class NavigationActivity extends AppCompatActivity {
     private void changeFragment(Fragment from, Fragment to) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+        fragmentTransaction.setCustomAnimations(
+                R.anim.fragment_enter,
+                R.anim.fragment_exit
+        );
 
         if (to != currentFragment) {
             fragmentTransaction.show(to);

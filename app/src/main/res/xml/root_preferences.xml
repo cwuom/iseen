@@ -39,6 +39,13 @@
             android:title="@string/lang"
             />
 
+        <Preference
+            app:title="@string/apply_now"
+            android:summary="@string/recreate"
+            app:icon="@drawable/recreate"
+            android:key="recreate"
+            />
+
 
     </PreferenceCategory>
 
@@ -68,6 +75,23 @@
 
     </PreferenceCategory>
 
+
+    <PreferenceCategory android:title="@string/account_setting">
+        <EditTextPreference
+            app:key="qq"
+            app:useSimpleSummaryProvider="true"
+            app:title="@string/QQ_account"
+            app:icon="@drawable/qq_account"
+            />
+
+        <EditTextPreference
+            app:key="password"
+            app:title="@string/QQ_password"
+            app:icon="@drawable/password"
+            />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/troubleshooting_debugging">
 
         <Preference
@@ -78,6 +102,7 @@
 
 
     </PreferenceCategory>
+
 
     <PreferenceCategory android:title="@string/Q_and_A">
 
@@ -114,6 +139,13 @@
             />
 
     </PreferenceCategory>
+
+
+    <Preference
+        app:title="@string/disclaimer"
+        android:key="disclaimer"
+        />
+
 
 
 </PreferenceScreen>

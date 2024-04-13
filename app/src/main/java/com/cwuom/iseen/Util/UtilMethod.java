@@ -210,7 +210,7 @@ public class UtilMethod {
     }
     public static String getAuthAPI(Context context) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        return preferences.getString("authentication_server_address", "https://api.cwuom.love/");
+        return preferences.getString("authentication_server_address", "https://api.lyhc.top/");
     }
 
 
@@ -236,6 +236,25 @@ public class UtilMethod {
         Intent intent = new Intent("ui_change");
         context.sendBroadcast(intent);
     }
+
+    public static void showDisclaimer(Context context){
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(context.getString(R.string.disclaimer))
+                .setMessage(context.getString(R.string.disclaimer_content))
+                .setNegativeButton("关闭", null)
+                .show();
+
+    }
+
+    public static int getStatusBarHeight(Context context) {
+        int result = 0;
+        @SuppressLint({"DiscouragedApi", "InternalInsetResource"}) int resourceId = context.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = context.getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
 
 
 }

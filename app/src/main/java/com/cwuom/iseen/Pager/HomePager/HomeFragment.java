@@ -6,6 +6,7 @@ import static com.cwuom.iseen.Util.UtilMethod.ShowLoadingSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.ShowSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.copyToClipboard;
 import static com.cwuom.iseen.Util.UtilMethod.getAuthAPI;
+import static com.cwuom.iseen.Util.UtilMethod.getStatusBarHeight;
 import static com.cwuom.iseen.Util.UtilMethod.replaceLastNewline;
 import static com.kongzue.dialogx.impl.ActivityLifecycleImpl.getApplicationContext;
 
@@ -18,6 +19,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUtils;
 import android.os.Handler;
@@ -84,6 +86,7 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -158,6 +161,7 @@ public class HomeFragment extends Fragment {
     private int req_interval = 30000;
     private boolean skipHiddenModeTips = false;
     BottomNavigationView bottomNavigationView;
+    boolean hide_status_bar_below;
 
 
     @Override
@@ -200,14 +204,9 @@ public class HomeFragment extends Fragment {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(requireActivity());
         boolean thin_mode = preferences.getBoolean("thin_mode", false);
         boolean hidden_warning = preferences.getBoolean("hidden_warning", false);
+        hide_status_bar_below = preferences.getBoolean("hide_status_bar_below", false);
         if (thin_mode){
-            binding.hidePath.setText("special/kp/");
-            switch_hidePhp = Boolean.TRUE;
-            skipHiddenModeTips = true;
-            binding.switchHidePhp.setChecked(true);
-            binding.switchAutoUpdateUuid.setChecked(true);
-            editor.putBoolean("switch_hidePhp", true).apply();
-            save_config();
+            fillDefaultConfiguration();
             binding.settingCard.setVisibility(View.GONE);
         }
         if (hidden_warning){
@@ -258,20 +257,11 @@ public class HomeFragment extends Fragment {
         // 弹出免责声明
         if (!sharedPreferences.getBoolean("is_read", false)){
             new MaterialAlertDialogBuilder(requireActivity())
-                    .setTitle("免责声明")
-                    .setMessage("在使用 iseen 软件（以下简称“软件”）之前，请仔细阅读并理解以下条款：\n" +
-                            "\n" +
-                            "API使用: 软件调用了第三方API，这些API的使用仅限于软件内部，与API的作者无关。我们对这些API的任何问题或故障不承担任何责任。\n" +
-                            "用户责任: 使用软件的用户需对自己的行为负责，包括但不限于数据输入、输出和操作。软件作者不对因使用软件导致的任何直接或间接损失承担责任。\n" +
-                            "知识产权: 所有通过此软件获取的信息和内容都受到版权、商标和其他相关法律的保护。未经授权的复制、分发或使用可能违反法律。\n" +
-                            "免责声明: 我们尽力确保软件的正常运作，但无法保证其永久可用或完全无误。因此，您应对任何由于软件中断、延迟、错误、故障或其他问题导致的损失承担责任。\n" +
-                            "隐私政策: 我们尊重用户的隐私权，不会收集、使用或披露您的个人信息，除非法律要求或经您明确同意。\n" +
-                            "\n" +
-                            "请注意，本免责声明可能随时更新，请定期查看最新版本。通过使用 iseen 软件，您同意遵守上述条款和条件。")
+                    .setTitle(getString(R.string.disclaimer))
+                    .setMessage(getString(R.string.disclaimer_content))
                     .setNegativeButton("关闭", null)
                     .setNeutralButton("不再提示", (dialog, which) -> editor.putBoolean("is_read", true).apply())
                     .show();
-
         }
 
         // 创建通知渠道
@@ -299,7 +289,6 @@ public class HomeFragment extends Fragment {
 
         String uuid = UUID.randomUUID().toString().trim().replaceAll("-", "");
         binding.id.setText(uuid);
-        ShowSnackbar("默认服务器配置已填充~", requireActivity(), bottomNavigationView);
         skipHiddenModeTips = false;
     }
 
@@ -347,8 +336,7 @@ public class HomeFragment extends Fragment {
     private TextWatcher onIDChange(){
         return new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -358,8 +346,7 @@ public class HomeFragment extends Fragment {
             }
 
             @Override
-            public void afterTextChanged(Editable s) {
-            }
+            public void afterTextChanged(Editable s) {}
         };
     }
 
@@ -498,7 +485,6 @@ public class HomeFragment extends Fragment {
         editor.putString("subtitle", subtitle);
         editor.putString("yx", yx);
         editor.putString("id", id);
-        editor.putString("php_filename", php_filename);
         editor.putString("custom_image", custom_image_url);
         editor.putString("note", note);
         editor.putString("hidePath", hidePath);
@@ -518,7 +504,16 @@ public class HomeFragment extends Fragment {
         }).show();
     }
 
+
     void setupHistoryManagerUI(FullScreenDialog dialog, View v){
+        if (hide_status_bar_below){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                dialog.setMaxHeight(requireActivity().getWindowManager().getCurrentWindowMetrics().getBounds().height() - getStatusBarHeight(requireActivity()));
+            } else{
+                dialog.setMaxHeight(getResources().getDisplayMetrics().heightPixels);
+            }
+        }
+
         v.findViewById(R.id.btn_go_back).setOnClickListener(v1 -> dialog.dismiss());
         TextView tv_no_card = v.findViewById(R.id.no_card);
         RecyclerView rv_card_list = v.findViewById(R.id.card_list);
@@ -896,6 +891,7 @@ public class HomeFragment extends Fragment {
     private List<EntityCard> getLocalCardHistory(){
         List<EntityCard> allCard = cardDao.getAllCard();
         if (!allCard.isEmpty()){
+            Collections.reverse(allCard); // 反转列表，使最新的记录出现在列表的开头
             return allCard;
         }
         return null;
@@ -967,7 +963,7 @@ public class HomeFragment extends Fragment {
         yx = sharedPreferences.getString("yx","");
         custom_image_url = sharedPreferences.getString("custom_image","");
         id = sharedPreferences.getString("id","");
-        php_filename = sharedPreferences.getString("php_filename","");
+        php_filename = sharedPreferences.getString("php_filename","kp.php");
         note = sharedPreferences.getString("note","");
         hidePath =  sharedPreferences.getString("hidePath","");
         switch_followID = sharedPreferences.getBoolean("switch_followID",false);

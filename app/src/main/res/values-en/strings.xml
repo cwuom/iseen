@@ -135,4 +135,13 @@
     <string name="hide_status_bar_below_desc">Adaptation for full screen, there may be problems at this stage</string>
     <string name="thin_mode_desc">Remove some cards and custom elements, retain the main functions</string>
     <string name="classic">Classic</string>
+    <string name="account_setting">QQ Account Setting</string>
+    <string name="QQ_account">Account</string>
+    <string name="QQ_password">Password</string>
+    <string name="save_template">Save Template</string>
+    <string name="fill_template">Fill Saved Template</string>
+    <string name="disclaimer_content">Before using the iseen software (hereinafter referred to as "the Software"), please read and understand the following terms carefully:\n\nAPI Usage: The Software uses third-party APIs, which are only for internal use within the Software and are not related to the authors of the APIs. We are not responsible for any issues or failures with these APIs.\nUser Responsibility: Users of the Software are responsible for their own actions, including but not limited to data input, output, and operations. The authors of the Software shall not be liable for any direct or indirect losses resulting from the use of the Software.\nIntellectual Property: All information and content accessed through this Software are protected by copyright, trademark, and other related laws. Unauthorized copying, distribution, or use may violate legal statutes.\nDisclaimer: We strive to ensure the normal operation of the Software, but cannot guarantee that it will always be available or completely error-free. Therefore, you should assume responsibility for any losses incurred due to interruptions, delays, errors, malfunctions, or other issues in the Software.\nPrivacy Policy: We respect the privacy rights of our users and will not collect, use, or disclose your personal information unless required by law or with your explicit consent.\n\nPlease note that this disclaimer may be updated at any time. By using the iseen software, you agree to abide by the above terms and conditions.</string>
+    <string name="disclaimer">APP Disclaimer</string>
+    <string name="apply_now">Apply the UI Settings</string>
+    <string name="recreate">This will recreate all fragments</string>
 </resources>

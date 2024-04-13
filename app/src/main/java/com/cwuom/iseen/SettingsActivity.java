@@ -2,6 +2,8 @@ package com.cwuom.iseen;
 
 import static com.cwuom.iseen.Util.UtilMethod.getPingDelay;
 import static com.cwuom.iseen.Util.UtilMethod.parseURLComponents;
+import static com.cwuom.iseen.Util.UtilMethod.recreate_fragment;
+import static com.cwuom.iseen.Util.UtilMethod.showDisclaimer;
 import static com.cwuom.iseen.Util.UtilMethod.switchLanguage;
 
 import android.content.Intent;
@@ -57,6 +59,14 @@ public class SettingsActivity extends AppCompatActivity {
             Preference join_qq = findPreference("join_qq");
             Preference theme = findPreference("theme_color");
             Preference github = findPreference("github");
+            Preference disclaimer = findPreference("disclaimer");
+            Preference recreate = findPreference("recreate");
+
+            assert recreate != null;
+            recreate.setOnPreferenceClickListener(preference -> {
+                recreate_fragment(requireActivity());
+                return false;
+            });
 
             assert use_default_api != null;
             if (Objects.requireNonNull(use_default_api.getSharedPreferences()).getBoolean("use_default_api_settings", true)){
@@ -111,9 +121,7 @@ public class SettingsActivity extends AppCompatActivity {
                 } else if (newValue.equals("MATERIAL_BLUE")) {
                     requireActivity().setTheme(R.style.Theme_Iseen_Blue);
                 }
-                Intent intent = new Intent("ui_change");
-                requireActivity().sendBroadcast(intent);
-
+                recreate_fragment(requireActivity());
                 requireActivity().recreate();
                 return true;
             });
@@ -149,10 +157,15 @@ public class SettingsActivity extends AppCompatActivity {
             assert language != null;
             language.setOnPreferenceChangeListener((preference, newValue) -> {
                 switchLanguage((String) newValue, requireActivity());
-                Intent intent = new Intent("ui_change");
-                requireActivity().sendBroadcast(intent);
+                recreate_fragment(requireActivity());
                 requireActivity().recreate();
                 return true;
+            });
+
+            assert disclaimer != null;
+            disclaimer.setOnPreferenceClickListener(preference -> {
+                showDisclaimer(requireActivity());
+                return false;
             });
         }
 
