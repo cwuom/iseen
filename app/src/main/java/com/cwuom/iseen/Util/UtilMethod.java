@@ -233,7 +233,7 @@ public class UtilMethod {
         return new String[] {host, type};
     }
     public static void recreate_fragment(Context context){
-        Intent intent = new Intent("ui_change");
+        Intent intent = new Intent(Constants.ACTION_UI_CHANGE);
         context.sendBroadcast(intent);
     }
 

@@ -143,7 +143,7 @@ public class ArkAPIReq {
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
                 try {
                     if (response.isSuccessful() && response.body() != null) {
                         String res = response.body().string();

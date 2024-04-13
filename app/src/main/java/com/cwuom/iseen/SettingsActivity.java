@@ -91,21 +91,30 @@ public class SettingsActivity extends AppCompatActivity {
             Objects.requireNonNull(check).setOnPreferenceClickListener(preference -> {
                 assert api_signature != null;
                 new Thread(() -> {
-                    String _api_signature = Objects.requireNonNull(parseURLComponents(api_signature.getText())[0]);
+                    String _api_signature = parseURLComponents(Objects.requireNonNull(api_signature.getText()))[0];
                     float ping = getPingDelay(api_signature.getText());
 
-                    String _api_auth = parseURLComponents(Objects.requireNonNull(api_auth).getText())[0];
+                    assert api_auth != null;
+                    String _api_auth = parseURLComponents(Objects.requireNonNull(api_auth.getText()))[0];
                     float ping_auth = getPingDelay(api_auth.getText());
                     try {
                         InetAddress address = InetAddress.getByName(_api_signature);
                         String ip = address.getHostAddress();
                         InetAddress address_auth = InetAddress.getByName(_api_auth);
                         String ip_auth = address_auth.getHostAddress();
-                        new Handler(Looper.getMainLooper()).post(() -> UtilMethod.showDialog("诊断结果", _api_signature + " --> " +ip + "\n响应延迟: " + ping + "ms" + "\n\n"
-                                + _api_auth + "-->" + ip_auth + "\n响应延迟: " + ping_auth + "ms", getActivity()));
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            if (isAdded()) {
+                                UtilMethod.showDialog("诊断结果", _api_signature + " --> " +ip + "\n响应延迟: " + ping + "ms" + "\n\n"
+                                        + _api_auth + "-->" + ip_auth + "\n响应延迟: " + ping_auth + "ms", getActivity());
+                            }
+                        });
 
                     } catch (UnknownHostException e) {
-                        new Handler(Looper.getMainLooper()).post(() -> UtilMethod.showDialog("诊断结果", e.toString(), getActivity()));
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            if (isAdded()) {
+                                UtilMethod.showDialog("诊断结果", e.toString(), getActivity());
+                            }
+                        });
                     }
                 }).start();
 

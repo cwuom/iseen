@@ -3,6 +3,7 @@ package com.cwuom.iseen;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.webkit.CookieManager;
@@ -170,7 +171,9 @@ public class LoginActivity extends AppCompatActivity {
     @SuppressLint("HandlerLeak")
     private class CustomHandler extends Handler {
         private final WeakReference<LoginActivity> weakReference;
+
         public CustomHandler(LoginActivity activity) {
+            super(Looper.getMainLooper());
             this.weakReference = new WeakReference<>(activity);
         }
 

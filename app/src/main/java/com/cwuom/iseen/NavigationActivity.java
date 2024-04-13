@@ -1,5 +1,8 @@
 package com.cwuom.iseen;
 
+import static com.cwuom.iseen.Util.Constants.ACTION_ACTIVITY_CREATED;
+import static com.cwuom.iseen.Util.Constants.ACTION_UI_CHANGE;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -51,7 +54,6 @@ public class NavigationActivity extends AppCompatActivity {
     ProfileFragment profileFragment;
     UiChangeReceiver uiChangeReceiver;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -61,6 +63,9 @@ public class NavigationActivity extends AppCompatActivity {
         uiChangeReceiver = new UiChangeReceiver();
         binding = ActivityNavigationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        Intent intent = new Intent(ACTION_ACTIVITY_CREATED);
+        sendBroadcast(intent);
 
         if (savedInstanceState != null) {
             removeExistingFragments();
@@ -108,10 +113,16 @@ public class NavigationActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction("ui_change");
+        intentFilter.addAction(ACTION_UI_CHANGE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(uiChangeReceiver, intentFilter, Context.RECEIVER_EXPORTED);
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(uiChangeReceiver);
     }
 
 

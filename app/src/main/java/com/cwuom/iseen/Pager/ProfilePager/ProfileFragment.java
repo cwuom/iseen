@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -73,6 +72,14 @@ public class ProfileFragment extends Fragment {
     static final int HANDLER_MESSAGE_UPDATE_USERINFO = 1;
     static final int HANDLER_MESSAGE_UPDATE_USERINFO_LOADING = 2;
 
+    private final Runnable updateUserInfoRunnable = new Runnable() {
+        @Override
+        public void run() {
+            fetchAndUpdateUserInfo();
+            handler.postDelayed(this, 1000);
+        }
+    };
+
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -89,8 +96,13 @@ public class ProfileFragment extends Fragment {
             ark_coins = savedInstanceState.getString("UserCoins", ark_coins);
             userImageUrl = savedInstanceState.getString("UserImageUrl", userImageUrl);
             profile_img_load_flag = savedInstanceState.getBoolean("ProfileImgLoadFlag", profile_img_load_flag);
-
             updateProfileViews();
+            try {
+                updatePermission(Integer.parseInt(ark_coins));
+            } catch (NumberFormatException e) {
+                binding.tvPermission.setText(getString(R.string.permission_info, "普通用户"));
+            }
+
         }
 
         binding.btnLogin.setOnClickListener(v -> startActivity(new Intent(getActivity(), LoginActivity.class)));
@@ -99,6 +111,8 @@ public class ProfileFragment extends Fragment {
         initMethod();
 
         binding.btnLogout.setOnClickListener(v -> MessageDialog.show("确定登出此账户么？", "登出后，您随时可以重新登录。", "确认登出").setOkButton((baseDialog, v1) -> {
+            profile_img_load_flag = false;
+            profile_info_load_flag = false;
             userDao.deleteLoginUser();
             binding.profileImg.setImageResource(R.drawable.ghost);
             handler.sendEmptyMessage(HANDLER_MESSAGE_UPDATE_USERINFO_NOTLOGIN);
@@ -120,38 +134,6 @@ public class ProfileFragment extends Fragment {
             binding.loginWarningCard.setVisibility(View.GONE);
             binding.tips.setVisibility(View.GONE);
         }
-
-        new Thread(() -> {
-            while (true){
-                EntityUser entityUser = userDao.getUserByUserIsLogin(true);
-                if (entityUser != null){
-                    userUID = entityUser.getUserUID();
-                    userName = entityUser.getUserName();
-                    userImageUrl = entityUser.getUserImageUrl();
-                    userRegTime = entityUser.getUserRegTime();
-                    userSign = entityUser.getUserSign();
-                    userCoins = entityUser.getUserCoins();
-                    userBirthday = entityUser.getUserBirthday();
-                    userFollows = entityUser.getUserFollows();
-                    userCookies = entityUser.getUserCookies();
-                    isLogin = entityUser.isLoginUser();
-                    if (!profile_info_load_flag){
-                        handler.sendEmptyMessage(HANDLER_MESSAGE_UPDATE_USERINFO_LOADING);
-                        ark_coins = Objects.requireNonNull(ArkAPIReq.getArkCoinsByMid(userUID, getActivity()));
-                        profile_info_load_flag = true;
-                    }
-
-                    handler.sendEmptyMessage(HANDLER_MESSAGE_UPDATE_USERINFO);
-                }else {
-                    handler.sendEmptyMessage(HANDLER_MESSAGE_UPDATE_USERINFO_NOTLOGIN);
-                }
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }).start();
 
         binding.classicsHeader.setEnableLastTime(false);
         binding.refreshLayout.setOnRefreshListener(refreshlayout -> new Thread(() -> {
@@ -182,68 +164,18 @@ public class ProfileFragment extends Fragment {
         }).start());
     }
 
-    private final Handler handler = new Handler(Looper.getMainLooper(), new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NonNull Message msg) {
-            if (msg.what == HANDLER_MESSAGE_UPDATE_USERINFO) {
-                if (isAdded()) {
-                    binding.tvUsername.setText(getString(R.string.username, userName));
-                    binding.tvRegtime.setText(getString(R.string.create_time, userRegTime));
-                    binding.tvUid.setText(getString(R.string.uid, userUID));
-                    binding.tvSign.setText(getString(R.string.info, userSign));
-                    binding.tvBirthday.setText(getString(R.string.birthday, userBirthday));
-                    binding.tvCoins.setText(getString(R.string.coins, ark_coins));
-                    binding.tvPermission.setText(getString(R.string.permission_info, "普通用户"));
-                    if (Integer.parseInt(ark_coins) > 0) {
-                        binding.tvPermission.setText(getString(R.string.permission_info, "高级用户"));
-                    }
-
-                    if (!profile_img_load_flag) {
-                        if (isAdded()) {
-                            Glide.with(requireActivity())
-                                    .load(userImageUrl)
-                                    .transform(new CircleCropTransform(1, Color.WHITE)) // 使用白色边框宽度为2dp的圆形变换
-                                    .into(binding.profileImg);
-                            profile_img_load_flag = true;
-                        }
-                    }
-                }
-
-            }
-            if (msg.what == HANDLER_MESSAGE_UPDATE_USERINFO_NOTLOGIN) {
-                if (isAdded()) {
-                    binding.tvUsername.setText(getString(R.string.username, "用户未登录"));
-                    binding.tvRegtime.setText(getString(R.string.create_time, "-"));
-                    binding.tvUid.setText(getString(R.string.uid, "-"));
-                    binding.tvSign.setText(getString(R.string.info, "-"));
-                    binding.tvBirthday.setText(getString(R.string.birthday, "-"));
-                    binding.tvCoins.setText(getString(R.string.coins, "0"));
-                    binding.tvPermission.setText(getString(R.string.permission_info, "普通用户"));
-                }
-            }
-
-            if (msg.what == HANDLER_MESSAGE_UPDATE_USERINFO_LOADING) {
-                if (isAdded()) {
-                    binding.tvUsername.setText(getString(R.string.username, userName));
-                    binding.tvRegtime.setText(getString(R.string.create_time, userRegTime));
-                    binding.tvUid.setText(getString(R.string.uid, userUID));
-                    binding.tvSign.setText(getString(R.string.info, userSign));
-                    binding.tvBirthday.setText(getString(R.string.birthday, userBirthday));
-                    binding.tvCoins.setText(getString(R.string.coins, "载入中.."));
-                    binding.tvPermission.setText(getString(R.string.permission_info, "载入中.."));
-
-                    if (!profile_img_load_flag) {
-                        Glide.with(requireActivity())
-                                .load(userImageUrl)
-                                .transform(new CircleCropTransform(1, Color.WHITE)) // 使用白色边框宽度为2dp的圆形变换
-                                .into(binding.profileImg);
-                        profile_img_load_flag = true;
-                    }
-                }
-
-            }
-            return true;
+    private final Handler handler = new Handler(Looper.getMainLooper(), msg -> {
+        if (msg.what == HANDLER_MESSAGE_UPDATE_USERINFO) {
+           updateUserInfo();
         }
+        if (msg.what == HANDLER_MESSAGE_UPDATE_USERINFO_NOTLOGIN) {
+            updateUserInfoNotLogin();
+        }
+
+        if (msg.what == HANDLER_MESSAGE_UPDATE_USERINFO_LOADING) {
+            updateUserInfoLoading();
+        }
+        return true;
     });
 
     @Override
@@ -265,6 +197,81 @@ public class ProfileFragment extends Fragment {
         outState.putBoolean("ProfileImgLoadFlag", profile_img_load_flag);
     }
 
+    private void updateUserInfo() {
+        if (isAdded()) {
+            binding.tvUsername.setText(getString(R.string.username, userName));
+            binding.tvRegtime.setText(getString(R.string.create_time, userRegTime));
+            binding.tvUid.setText(getString(R.string.uid, userUID));
+            binding.tvSign.setText(getString(R.string.info, userSign));
+            binding.tvBirthday.setText(getString(R.string.birthday, userBirthday));
+            binding.tvCoins.setText(getString(R.string.coins, ark_coins));
+            updatePermission(Integer.parseInt(ark_coins));
+
+            if (!profile_img_load_flag) {
+                if (isAdded()) {
+                    Glide.with(requireActivity())
+                            .load(userImageUrl)
+                            .transform(new CircleCropTransform(1, Color.WHITE)) // 使用白色边框宽度为2dp的圆形变换
+                            .into(binding.profileImg);
+                    profile_img_load_flag = true;
+                }
+            }
+        }
+    }
+
+    private void updatePermission(int coins){
+        if (coins == 0) {
+            binding.tvPermission.setText(getString(R.string.permission_info, "普通用户"));
+        }
+        else if (coins > 0 && coins < 500) {
+            binding.tvPermission.setText(getString(R.string.permission_info, "高级用户"));
+        }
+        else if (coins > 500 && coins < 1000) {
+            binding.tvPermission.setText(getString(R.string.permission_info, "白金用户"));
+        }
+        else if (coins > 1000 && coins < 5000) {
+            binding.tvPermission.setText(getString(R.string.permission_info, "至尊用户"));
+        }
+        else if (coins > 5000 && coins < 1000000) {
+            binding.tvPermission.setText(getString(R.string.permission_info, "超级用户"));
+        }
+        else if (coins > 1000000) {
+            binding.tvPermission.setText(getString(R.string.permission_info, "永久用户"));
+        }
+    }
+
+    private void updateUserInfoNotLogin(){
+        if (isAdded()) {
+            binding.tvUsername.setText(getString(R.string.username, "用户未登录"));
+            binding.tvRegtime.setText(getString(R.string.create_time, "-"));
+            binding.tvUid.setText(getString(R.string.uid, "-"));
+            binding.tvSign.setText(getString(R.string.info, "-"));
+            binding.tvBirthday.setText(getString(R.string.birthday, "-"));
+            binding.tvCoins.setText(getString(R.string.coins, "0"));
+            binding.tvPermission.setText(getString(R.string.permission_info, "普通用户"));
+        }
+    }
+
+    private void updateUserInfoLoading(){
+        if (isAdded()) {
+            binding.tvUsername.setText(getString(R.string.username, userName));
+            binding.tvRegtime.setText(getString(R.string.create_time, userRegTime));
+            binding.tvUid.setText(getString(R.string.uid, userUID));
+            binding.tvSign.setText(getString(R.string.info, userSign));
+            binding.tvBirthday.setText(getString(R.string.birthday, userBirthday));
+            binding.tvCoins.setText(getString(R.string.coins, "载入中.."));
+            binding.tvPermission.setText(getString(R.string.permission_info, "载入中.."));
+
+            if (!profile_img_load_flag) {
+                Glide.with(requireActivity())
+                        .load(userImageUrl)
+                        .transform(new CircleCropTransform(1, Color.WHITE)) // 使用白色边框宽度为2dp的圆形变换
+                        .into(binding.profileImg);
+                profile_img_load_flag = true;
+            }
+        }
+    }
+
 
     private void updateProfileViews() {
         binding.tvUsername.setText(getString(R.string.username, userName));
@@ -280,6 +287,54 @@ public class ProfileFragment extends Fragment {
                     .transform(new CircleCropTransform(1, Color.WHITE)) // 使用白色边框宽度为2dp的圆形变换
                     .into(binding.profileImg);
         }
+    }
+
+    private void fetchAndUpdateUserInfo() {
+        EntityUser entityUser = userDao.getUserByUserIsLogin(true);
+        if (entityUser != null) {
+            updateUserInfoFromEntity(entityUser);
+            if (!profile_info_load_flag) {
+                new Thread(() -> {
+                    try {
+                        String arkCoins = ArkAPIReq.getArkCoinsByMid(userUID, getActivity());
+                        requireActivity().runOnUiThread(() -> {
+                            ark_coins = arkCoins;
+                            profile_info_load_flag = true;
+                            handler.sendEmptyMessage(HANDLER_MESSAGE_UPDATE_USERINFO);
+                        });
+                    } catch (Exception ignored) {}
+                }).start();
+            } else {
+                handler.sendEmptyMessage(HANDLER_MESSAGE_UPDATE_USERINFO);
+            }
+        } else {
+            handler.sendEmptyMessage(HANDLER_MESSAGE_UPDATE_USERINFO_NOTLOGIN);
+        }
+    }
+
+    private void updateUserInfoFromEntity(EntityUser user) {
+        userUID = user.getUserUID();
+        userName = user.getUserName();
+        userImageUrl = user.getUserImageUrl();
+        userRegTime = user.getUserRegTime();
+        userSign = user.getUserSign();
+        userCoins = user.getUserCoins();
+        userBirthday = user.getUserBirthday();
+        userFollows = user.getUserFollows();
+        userCookies = user.getUserCookies();
+        isLogin = user.isLoginUser();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        handler.post(updateUserInfoRunnable);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        handler.removeCallbacks(updateUserInfoRunnable);
     }
 
     @Override

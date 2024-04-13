@@ -62,7 +62,7 @@ public class NeverCrash {
         return this;
     }
 
-    public void register(Application application) {
+    public void register(Application ignoredApplication) {
         //主线程异常拦截
         new Handler(Looper.getMainLooper()).post(() -> {
             while (true) {

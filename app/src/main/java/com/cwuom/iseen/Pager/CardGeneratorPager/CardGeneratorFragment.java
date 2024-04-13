@@ -4,19 +4,35 @@ import static android.content.Context.MODE_PRIVATE;
 import static com.cwuom.iseen.Util.UtilMethod.ShowLoadingSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.ShowSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.copyToClipboard;
+import static com.cwuom.iseen.Util.UtilMethod.parseURLComponents;
+import static com.cwuom.iseen.Util.UtilMethod.showDialog;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
 
@@ -25,13 +41,16 @@ import com.cwuom.iseen.QZoneActivity;
 import com.cwuom.iseen.R;
 import com.cwuom.iseen.Util.API.Ark.ArkAPIReq;
 import com.cwuom.iseen.Util.API.Ark.ArkApiCallback;
+import com.cwuom.iseen.Util.Constants;
 import com.cwuom.iseen.databinding.FragmentCardGeneratorBinding;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -88,9 +107,39 @@ public class CardGeneratorFragment extends Fragment {
         binding = FragmentCardGeneratorBinding.inflate(getLayoutInflater());
         storeOriginalHints();
         initMethod();
+        if (savedInstanceState != null) {
+            initAdapter();
+        }
 
         return binding.getRoot();
     }
+
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        IntentFilter filter = new IntentFilter(Constants.ACTION_ACTIVITY_CREATED);
+        requireActivity().registerReceiver(activityCreatedReceiver, filter, Context.RECEIVER_EXPORTED);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        requireActivity().unregisterReceiver(activityCreatedReceiver);
+    }
+
+    private final BroadcastReceiver activityCreatedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (Constants.ACTION_ACTIVITY_CREATED.equals(intent.getAction())) {
+                // Activity 被创建或重建时调用 initAdapter()
+                initAdapter();
+            }
+        }
+    };
+
+
+
 
     @SuppressLint("SetTextI18n")
     private void initMethod(){
@@ -109,9 +158,12 @@ public class CardGeneratorFragment extends Fragment {
         }
 
         hideAllInputs();
-        String[] cardTypes = {"图转卡(imagetextbot)", "文转卡(Embed)", "分享类型卡片(News)", "小程序卡片(Miniapp)", "按钮卡片(eventshare.lua)"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireActivity(), R.layout.custom_dropdown_item, cardTypes);
-        binding.autoCompleteTextView.setAdapter(adapter);
+        initAdapter();
+        initializeInputVisibility();
+
+        for (TextInputLayout inputLayout : getAllInputs()) {
+            setupEditTextListener(inputLayout);
+        }
 
         binding.autoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> {
             binding.btnGenerate.setEnabled(true);
@@ -121,10 +173,6 @@ public class CardGeneratorFragment extends Fragment {
 
         binding.btnGenerate.setOnClickListener(v -> {
             String cardType = binding.autoCompleteTextView.getText().toString();
-
-            String endpoint = "";
-            FormBody.Builder formBodyBuilder = new FormBody.Builder();
-
             uin = Objects.requireNonNull(binding.uin.getText()).toString();
             skey = Objects.requireNonNull(binding.skey.getText()).toString();
             p_skey = Objects.requireNonNull(binding.pSkey.getText()).toString();
@@ -142,146 +190,9 @@ public class CardGeneratorFragment extends Fragment {
                 }
             }
 
-            String preview = Objects.requireNonNull(binding.cardPreview.getText()).toString();
-            String tagIcon = Objects.requireNonNull(binding.cardTagIcon.getText()).toString();
-            String jumpUrl = Objects.requireNonNull(binding.cardJumpUrl.getText()).toString();
-            String title = Objects.requireNonNull(binding.cardTitle.getText()).toString();
-            String cover = Objects.requireNonNull(binding.cardCover.getText()).toString();
+            sendRequestByCardType(cardType);
 
-            switch (cardType) {
-                case "图转卡(imagetextbot)":
-                    if (cover.isEmpty()){
-                        cover = "https://api.lyhc.top/bot/a.jpg";
-                        binding.cardCover.setText(cover);
-                        Toast.makeText(requireActivity(), "怎么能没有预览图呀.. 已经填充为默认啦！", Toast.LENGTH_LONG).show();
-                    }
-                    endpoint = "/get_card";
-                    formBodyBuilder.add("title", Objects.requireNonNull(binding.cardTitle.getText()).toString());
-                    formBodyBuilder.add("subtitle", Objects.requireNonNull(binding.cardSubtitle.getText()).toString());
-                    formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
-                    formBodyBuilder.add("cover", cover);
-                    break;
-                case "文转卡(Embed)":
-                    endpoint = "/get_card_embed";
-                    formBodyBuilder.add("title", Objects.requireNonNull(binding.cardTitle.getText()).toString());
-                    formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
-                    formBodyBuilder.add("thumbnailUrl", Objects.requireNonNull(binding.cardThumbnailUrl.getText()).toString());
-                    formBodyBuilder.add("f1", Objects.requireNonNull(binding.cardF1.getText()).toString());
-                    formBodyBuilder.add("f2", Objects.requireNonNull(binding.cardF2.getText()).toString());
-                    formBodyBuilder.add("f3", Objects.requireNonNull(binding.cardF3.getText()).toString());
-                    formBodyBuilder.add("f4", Objects.requireNonNull(binding.cardF4.getText()).toString());
-                    formBodyBuilder.add("f5", Objects.requireNonNull(binding.cardF5.getText()).toString());
-                    break;
-                case "分享类型卡片(News)":
-                    endpoint = "/get_card_news";
-                    if (tagIcon.isEmpty()){
-                        tagIcon = "https://api.lyhc.top/bot/a.jpg";
-                        binding.cardTagIcon.setText(tagIcon);
-                        Toast.makeText(requireActivity(), "小图标不能为空哦... 已经填充为默认啦！", Toast.LENGTH_LONG).show();
-                    }
-                    if (preview.isEmpty()){
-                        preview = "https://api.lyhc.top/bot/a.jpg";
-                        binding.cardPreview.setText(preview);
-                        Toast.makeText(requireActivity(), "怎么能没有图片呀.. 已经填充为默认啦！", Toast.LENGTH_LONG).show();
-                    }
-                    formBodyBuilder.add("desc", Objects.requireNonNull(binding.cardDesc.getText()).toString());
-                    formBodyBuilder.add("preview", Objects.requireNonNull(binding.cardPreview.getText()).toString());
-                    formBodyBuilder.add("tag", Objects.requireNonNull(binding.cardTag.getText()).toString());
-                    formBodyBuilder.add("tagIcon", tagIcon);
-                    formBodyBuilder.add("title", Objects.requireNonNull(binding.cardTitle.getText()).toString());
-                    formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
-                    formBodyBuilder.add("uin", uin);
-                    formBodyBuilder.add("skey", skey);
-                    formBodyBuilder.add("pSkey", p_skey);
-                    break;
-                case "小程序卡片(Miniapp)":
-                    endpoint = "/get_miniapp_card";
-                    if (tagIcon.isEmpty()){
-                        tagIcon = "https://api.lyhc.top/bot/a.jpg";
-                        binding.cardTagIcon.setText(tagIcon);
-                        Toast.makeText(requireActivity(), "小图标不能为空哦... 已经填充为默认啦！", Toast.LENGTH_LONG).show();
-                    }
-                    if (preview.isEmpty()){
-                        preview = "https://api.lyhc.top/bot/a.jpg";
-                        binding.cardPreview.setText(preview);
-                        Toast.makeText(requireActivity(), "怎么能没有图片呀.. 已经填充为默认啦！", Toast.LENGTH_LONG).show();
-                    }
-                    formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
-                    formBodyBuilder.add("jumpUrl", jumpUrl);
-                    formBodyBuilder.add("preview", Objects.requireNonNull(binding.cardPreview.getText()).toString());
-                    formBodyBuilder.add("tag", Objects.requireNonNull(binding.cardTag.getText()).toString());
-                    formBodyBuilder.add("tagIcon", tagIcon);
-                    formBodyBuilder.add("title", Objects.requireNonNull(binding.cardTitle.getText()).toString());
-                    formBodyBuilder.add("uin", uin);
-                    formBodyBuilder.add("skey", skey);
-                    formBodyBuilder.add("pSkey", p_skey);
-                    break;
-                case "按钮卡片(eventshare.lua)":
-                    endpoint = "/get_btn_card";
-                    if (title.isEmpty()){
-                        title = "嘿嘿! 这里是标题";
-                        binding.cardTitle.setText(title);
-                        Toast.makeText(requireActivity(), "你忘记填标题啦！已经为你填好了哦", Toast.LENGTH_LONG).show();
-                    }
-                    if (jumpUrl.isEmpty()){
-                        jumpUrl = "https://cwuom.love";
-                        binding.cardJumpUrl.setText(jumpUrl);
-                        Toast.makeText(requireActivity(), "总感觉哪里空空的，原来是因为你没有填跳转链接！已经填好了哦~", Toast.LENGTH_SHORT).show();
-                    }
-                    if (tagIcon.isEmpty()){
-                        tagIcon = "https://tianquan.gtimg.cn/chatBg/item/53693/newPreview2.png";
-                        binding.cardTagIcon.setText(tagIcon);
-                        Toast.makeText(requireActivity(), "小图标不能为空哦... 已经填充为默认啦！", Toast.LENGTH_LONG).show();
-                    }
-                    if (preview.isEmpty()){
-                        preview = "https://tianquan.gtimg.cn/chatBg/item/53693/newPreview2.png";
-                        binding.cardPreview.setText(preview);
-                        Toast.makeText(requireActivity(), "怎么能没有图片呀.. 已经填充为默认啦！", Toast.LENGTH_LONG).show();
-                    }
-                    formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
-                    formBodyBuilder.add("title", title);
-                    formBodyBuilder.add("preview", preview);
-                    formBodyBuilder.add("jump", jumpUrl);
-                    formBodyBuilder.add("jumpButton", Objects.requireNonNull(binding.cardJumpButton.getText()).toString());
-                    formBodyBuilder.add("buttonTitle", Objects.requireNonNull(binding.cardButtonTitle.getText()).toString());
-                    formBodyBuilder.add("tag", Objects.requireNonNull(binding.cardTag.getText()).toString());
-                    formBodyBuilder.add("uin", uin);
-                    formBodyBuilder.add("skey", skey);
-                    formBodyBuilder.add("pSkey", p_skey);
-                    break;
-            }
 
-            if (!Objects.requireNonNull(endpoint).isEmpty()) {
-                Snackbar snackbar = ShowLoadingSnackbar("请求已发送，正在等待服务器响应..", binding.getRoot(), bottomNavigationView);
-                ArkAPIReq.sendSignaturePostRequest(endpoint, formBodyBuilder.build(), getActivity(), new ArkApiCallback() {
-                    @Override
-                    public void onSuccess(String result) {
-                        requireActivity().runOnUiThread(() -> {
-                            copyToClipboard(result, requireActivity());
-                            new MaterialAlertDialogBuilder(requireActivity())
-                                    .setTitle("卡片数据已复制到您的剪贴板")
-                                    .setMessage(result)
-                                    .setPositiveButton("好", null)
-                                    .show();
-
-                            snackbar.dismiss();
-                        });
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        requireActivity().runOnUiThread(() -> {
-                            new MaterialAlertDialogBuilder(requireActivity())
-                                    .setTitle("出了点问题！")
-                                    .setMessage("请求失败: " + e.getMessage())
-                                    .setPositiveButton("好", null)
-                                    .show();
-
-                            snackbar.dismiss();
-                        });
-                    }
-                });
-            }
         });
 
         binding.btnLogin.setOnClickListener(v -> {
@@ -335,6 +246,181 @@ public class CardGeneratorFragment extends Fragment {
             binding.cardF5.setText(prefs.getString(KEY_CARD_F5, ""));
             ShowSnackbar("模板已恢复", requireActivity(), bottomNavigationView);
         });
+    }
+
+    private void sendRequestByCardType(String cardType) {
+        String endpoint = "";
+        FormBody.Builder formBodyBuilder = new FormBody.Builder();
+
+        String preview = Objects.requireNonNull(binding.cardPreview.getText()).toString();
+        String tagIcon = Objects.requireNonNull(binding.cardTagIcon.getText()).toString();
+        String jumpUrl = Objects.requireNonNull(binding.cardJumpUrl.getText()).toString();
+        String title = Objects.requireNonNull(binding.cardTitle.getText()).toString();
+        String cover = Objects.requireNonNull(binding.cardCover.getText()).toString();
+
+        switch (cardType) {
+            case "图转卡(imagetextbot)":
+                if (cover.isEmpty()){
+                    cover = "https://api.lyhc.top/bot/a.jpg";
+                    binding.cardCover.setText(cover);
+                    Toast.makeText(requireActivity(), "怎么能没有预览图呀.. 已经填充为默认啦！", Toast.LENGTH_LONG).show();
+                }
+                endpoint = "/get_card";
+                formBodyBuilder.add("title", Objects.requireNonNull(binding.cardTitle.getText()).toString());
+                formBodyBuilder.add("subtitle", Objects.requireNonNull(binding.cardSubtitle.getText()).toString());
+                formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
+                formBodyBuilder.add("cover", cover);
+                break;
+            case "文转卡(Embed)":
+                endpoint = "/get_card_embed";
+                formBodyBuilder.add("title", Objects.requireNonNull(binding.cardTitle.getText()).toString());
+                formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
+                formBodyBuilder.add("thumbnailUrl", Objects.requireNonNull(binding.cardThumbnailUrl.getText()).toString());
+                formBodyBuilder.add("f1", Objects.requireNonNull(binding.cardF1.getText()).toString());
+                formBodyBuilder.add("f2", Objects.requireNonNull(binding.cardF2.getText()).toString());
+                formBodyBuilder.add("f3", Objects.requireNonNull(binding.cardF3.getText()).toString());
+                formBodyBuilder.add("f4", Objects.requireNonNull(binding.cardF4.getText()).toString());
+                formBodyBuilder.add("f5", Objects.requireNonNull(binding.cardF5.getText()).toString());
+                break;
+            case "分享类型卡片(News)":
+                endpoint = "/get_card_news";
+                if (tagIcon.isEmpty()){
+                    tagIcon = "https://api.lyhc.top/bot/a.jpg";
+                    binding.cardTagIcon.setText(tagIcon);
+                    Toast.makeText(requireActivity(), "小图标不能为空哦... 已经填充为默认啦！", Toast.LENGTH_LONG).show();
+                } else{
+                    if (Objects.equals(parseURLComponents(tagIcon)[0], "tianquan.gtimg.cn")){
+                        tagIcon = "https://api.lyhc.top/bot/a.jpg";
+                        binding.cardPreview.setText(tagIcon);
+                        Toast.makeText(requireActivity(), "这个预览图的域名不受支持呢.. 已经为你填充默认预览图", Toast.LENGTH_LONG).show();
+                    }
+                }
+                if (preview.isEmpty()){
+                    preview = "https://api.lyhc.top/bot/a.jpg";
+                    binding.cardPreview.setText(preview);
+                    Toast.makeText(requireActivity(), "怎么能没有图片呀.. 已经填充为默认啦！", Toast.LENGTH_LONG).show();
+                } else{
+                    if (Objects.equals(parseURLComponents(preview)[0], "tianquan.gtimg.cn")){
+                        tagIcon = "https://api.lyhc.top/bot/a.jpg";
+                        binding.cardPreview.setText(tagIcon);
+                        Toast.makeText(requireActivity(), "这个预览图的域名不受支持呢.. 已经为你填充默认预览图", Toast.LENGTH_LONG).show();
+                    }
+                }
+                formBodyBuilder.add("desc", Objects.requireNonNull(binding.cardDesc.getText()).toString());
+                formBodyBuilder.add("preview", Objects.requireNonNull(binding.cardPreview.getText()).toString());
+                formBodyBuilder.add("tag", Objects.requireNonNull(binding.cardTag.getText()).toString());
+                formBodyBuilder.add("tagIcon", tagIcon);
+                formBodyBuilder.add("title", Objects.requireNonNull(binding.cardTitle.getText()).toString());
+                formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
+                formBodyBuilder.add("uin", uin);
+                formBodyBuilder.add("skey", skey);
+                formBodyBuilder.add("pSkey", p_skey);
+                break;
+            case "小程序卡片(Miniapp)":
+                endpoint = "/get_miniapp_card";
+                if (tagIcon.isEmpty()){
+                    tagIcon = "https://api.lyhc.top/bot/a.jpg";
+                    binding.cardTagIcon.setText(tagIcon);
+                    Toast.makeText(requireActivity(), "小图标不能为空哦... 已经填充为默认啦！", Toast.LENGTH_LONG).show();
+                } else{
+                    if (Objects.equals(parseURLComponents(tagIcon)[0], "tianquan.gtimg.cn")){
+                        tagIcon = "https://api.lyhc.top/bot/a.jpg";
+                        binding.cardPreview.setText(tagIcon);
+                        Toast.makeText(requireActivity(), "这个预览图的域名不受支持呢.. 已经为你填充默认预览图", Toast.LENGTH_LONG).show();
+                    }
+                }
+                if (preview.isEmpty()){
+                    preview = "https://api.lyhc.top/bot/a.jpg";
+                    binding.cardPreview.setText(preview);
+                    Toast.makeText(requireActivity(), "怎么能没有图片呀.. 已经填充为默认啦！", Toast.LENGTH_LONG).show();
+                } else{
+                    if (Objects.equals(parseURLComponents(preview)[0], "tianquan.gtimg.cn")){
+                        showDialog("天权图标", parseURLComponents(tagIcon)[0], requireActivity());
+                        tagIcon = "https://api.lyhc.top/bot/a.jpg";
+                        binding.cardPreview.setText(tagIcon);
+                        Toast.makeText(requireActivity(), "这个预览图的域名不受支持呢.. 已经为你填充默认预览图", Toast.LENGTH_LONG).show();
+                    }
+                }
+
+
+                formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
+                formBodyBuilder.add("jumpUrl", jumpUrl);
+                formBodyBuilder.add("preview", Objects.requireNonNull(binding.cardPreview.getText()).toString());
+                formBodyBuilder.add("tag", Objects.requireNonNull(binding.cardTag.getText()).toString());
+                formBodyBuilder.add("tagIcon", tagIcon);
+                formBodyBuilder.add("title", Objects.requireNonNull(binding.cardTitle.getText()).toString());
+                formBodyBuilder.add("uin", uin);
+                formBodyBuilder.add("skey", skey);
+                formBodyBuilder.add("pSkey", p_skey);
+                break;
+            case "按钮卡片(eventshare.lua)":
+                endpoint = "/get_btn_card";
+                if (title.isEmpty()){
+                    title = "嘿嘿! 这里是标题";
+                    binding.cardTitle.setText(title);
+                    Toast.makeText(requireActivity(), "你忘记填标题啦！已经为你填好了哦", Toast.LENGTH_LONG).show();
+                }
+                if (jumpUrl.isEmpty()){
+                    jumpUrl = "https://cwuom.love";
+                    binding.cardJumpUrl.setText(jumpUrl);
+                    Toast.makeText(requireActivity(), "总感觉哪里空空的，原来是因为你没有填跳转链接！已经填好了哦~", Toast.LENGTH_SHORT).show();
+                }
+
+                if (preview.isEmpty()){
+                    preview = "https://tianquan.gtimg.cn/chatBg/item/53693/newPreview2.png";
+                    binding.cardPreview.setText(preview);
+                    Toast.makeText(requireActivity(), "怎么能没有图片呀.. 已经填充为默认啦！", Toast.LENGTH_LONG).show();
+                } else{
+                    if (!Objects.equals(parseURLComponents(preview)[0], "tianquan.gtimg.cn")){
+                        preview = "https://tianquan.gtimg.cn/chatBg/item/53693/newPreview2.png";
+                        binding.cardPreview.setText(preview);
+                        Toast.makeText(requireActivity(), "这个预览图的域名不受支持呢.. 你需要在QQ主题商店抓取背景图再填入，已经为你填充默认预览图", Toast.LENGTH_LONG).show();
+                    }
+                }
+                formBodyBuilder.add("prompt", Objects.requireNonNull(binding.cardPrompt.getText()).toString());
+                formBodyBuilder.add("title", title);
+                formBodyBuilder.add("preview", preview);
+                formBodyBuilder.add("jump", jumpUrl);
+                formBodyBuilder.add("jumpButton", Objects.requireNonNull(binding.cardJumpButton.getText()).toString());
+                formBodyBuilder.add("buttonTitle", Objects.requireNonNull(binding.cardButtonTitle.getText()).toString());
+                formBodyBuilder.add("tag", Objects.requireNonNull(binding.cardTag.getText()).toString());
+                formBodyBuilder.add("uin", uin);
+                formBodyBuilder.add("skey", skey);
+                formBodyBuilder.add("pSkey", p_skey);
+                break;
+        }
+
+        if (!Objects.requireNonNull(endpoint).isEmpty()) {
+            Snackbar snackbar = ShowLoadingSnackbar("请求已发送，正在等待服务器响应..", binding.getRoot(), bottomNavigationView);
+            ArkAPIReq.sendSignaturePostRequest(endpoint, formBodyBuilder.build(), getActivity(), new ArkApiCallback() {
+                @Override
+                public void onSuccess(String result) {
+                    requireActivity().runOnUiThread(() -> {
+                        copyToClipboard(result, requireActivity());
+                        new MaterialAlertDialogBuilder(requireActivity())
+                                .setTitle("卡片数据已复制到您的剪贴板")
+                                .setMessage(result)
+                                .setPositiveButton("好", null)
+                                .show();
+
+                        snackbar.dismiss();
+                    });
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    requireActivity().runOnUiThread(() -> {
+                        new MaterialAlertDialogBuilder(requireActivity())
+                                .setTitle("出了点问题！")
+                                .setMessage("请求失败: " + e.getMessage())
+                                .setPositiveButton("好", null)
+                                .show();
+
+                        snackbar.dismiss();
+                    });
+                }
+            });
+        }
     }
 
 
@@ -392,6 +478,8 @@ public class CardGeneratorFragment extends Fragment {
                 makeRequired(binding.textFieldPSkey);
                 break;
         }
+
+        applyAnimationsWithOverlap();
     }
 
 
@@ -399,18 +487,27 @@ public class CardGeneratorFragment extends Fragment {
         input.setVisibility(View.VISIBLE);
         String originalHint = originalHints.get(input);
         input.setHint("* " + originalHint); // Mark as required
+
+        animateViewHeight(input);
     }
 
     private void makeOptional(TextInputLayout input) {
         input.setVisibility(View.VISIBLE);
         String originalHint = originalHints.get(input);
         input.setHint(originalHint); // Mark as optional
+
+        animateViewHeight(input);
     }
+
     private void hideAllInputs() {
         for (Map.Entry<View, String> entry : originalHints.entrySet()) {
             View input = entry.getKey();
             input.setVisibility(View.GONE);
             ((TextInputLayout) input).setHint(entry.getValue());
+
+            ViewGroup.LayoutParams params = input.getLayoutParams();
+            params.height = 0;
+            input.setLayoutParams(params);
         }
     }
 
@@ -436,5 +533,106 @@ public class CardGeneratorFragment extends Fragment {
         originalHints.put(binding.textFieldUin, Objects.requireNonNull(binding.textFieldUin.getHint()).toString());
         originalHints.put(binding.textFieldSkey, Objects.requireNonNull(binding.textFieldSkey.getHint()).toString());
         originalHints.put(binding.textFieldPSkey, Objects.requireNonNull(binding.textFieldPSkey.getHint()).toString());
+    }
+    private void applyAnimationsWithOverlap() {
+        long animationDuration = 300;  // 每个动画的持续时间
+        long delayIncrement = 90;      // 动画之间的延迟增量
+        long initialDelay = 50;        // 第一个动画的初始延迟
+
+        for (TextInputLayout input : getAllInputs()) {
+            if (input.getVisibility() == View.VISIBLE) {
+                animateInput(input, animationDuration, initialDelay);
+                initialDelay += delayIncrement;
+            }
+        }
+    }
+
+    private void animateInput(View input, long duration, long delay) {
+        ObjectAnimator fadeIn = ObjectAnimator.ofFloat(input, "alpha", 0f, 1f);
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(input, "scaleX", 0.85f, 1f);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(input, "scaleY", 0.85f, 1f);
+
+        fadeIn.setDuration(duration);
+        scaleX.setDuration(duration);
+        scaleY.setDuration(duration);
+
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.playTogether(fadeIn, scaleX, scaleY);
+        animatorSet.setStartDelay(delay);
+        animatorSet.start();
+    }
+
+    private void animateViewHeight(final View view) {
+        view.measure(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        int startHeight = view.getHeight();
+        int endHeight = view.getMeasuredHeight();
+
+        ValueAnimator animator = ValueAnimator.ofInt(startHeight, endHeight);
+        animator.addUpdateListener(valueAnimator -> {
+            int value = (Integer) valueAnimator.getAnimatedValue();
+            ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
+            layoutParams.height = value;
+            view.setLayoutParams(layoutParams);
+        });
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                // 动画结束后将高度设置为WRAP_CONTENT
+                ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
+                layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                view.setLayoutParams(layoutParams);
+            }
+        });
+        animator.setDuration(300);
+        animator.start();
+    }
+
+    private void setupEditTextListener(TextInputLayout textInputLayout) {
+        EditText editText = textInputLayout.getEditText();
+        if (editText != null) {
+            editText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    // 触发重新测量和布局
+                    textInputLayout.requestLayout();
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {}
+            });
+        }
+    }
+
+
+
+    private void initializeInputVisibility() {
+        // 设置所有控件为完全透明并缩放
+        for (TextInputLayout input : getAllInputs()) {
+            input.setAlpha(0f);
+            input.setScaleX(0.85f);
+            input.setScaleY(0.85f);
+        }
+    }
+
+    private List<TextInputLayout> getAllInputs() {
+        return Arrays.asList(
+                binding.textFieldCardTitle, binding.textFieldCardSubtitle, binding.textFieldCardPrompt,
+                binding.textFieldCardCover, binding.textFieldCardDesc, binding.textFieldCardPreview,
+                binding.textFieldCardTag, binding.textFieldCardTagIcon, binding.textFieldCardThumbnailUrl,
+                binding.textFieldCardJumpUrl, binding.textFieldCardJumpButton, binding.textFieldCardButtonTitle,
+                binding.textFieldCardF1, binding.textFieldCardF2, binding.textFieldCardF3,
+                binding.textFieldCardF4, binding.textFieldCardF5, binding.textFieldUin,
+                binding.textFieldSkey, binding.textFieldPSkey
+        );
+    }
+
+    void initAdapter(){
+        binding.autoCompleteTextView.setText("", false);
+        String[] cardTypes = {"图转卡(imagetextbot)", "文转卡(Embed)", "分享类型卡片(News)", "小程序卡片(Miniapp)", "按钮卡片(eventshare.lua)"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireActivity(), R.layout.custom_dropdown_item, cardTypes);
+        binding.autoCompleteTextView.setAdapter(adapter);
     }
 }
