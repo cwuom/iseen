@@ -19,6 +19,7 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.PreferenceManager;
 
 import com.cwuom.iseen.Pager.CardGeneratorPager.CardGeneratorFragment;
@@ -135,14 +136,25 @@ public class NavigationActivity extends AppCompatActivity {
 
     private void changeFragment(Fragment newFragment) {
         if (newFragment != currentFragment) {
-            getSupportFragmentManager().beginTransaction()
-                    .hide(currentFragment)
-                    .show(newFragment)
-                    .setPrimaryNavigationFragment(newFragment)
-                    .commit();
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+            fragmentTransaction.setCustomAnimations(
+                    R.anim.fragment_enter,
+                    R.anim.fragment_exit,
+                    R.anim.fragment_enter,
+                    R.anim.fragment_exit
+            );
+
+            fragmentTransaction.hide(currentFragment);
+            fragmentTransaction.show(newFragment);
+            fragmentTransaction.setPrimaryNavigationFragment(newFragment);
+            fragmentTransaction.commit();
             currentFragment = newFragment;
         }
     }
+
+
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void configureStatusBarBelow() {
