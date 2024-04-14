@@ -19,7 +19,6 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.PreferenceManager;
 
 import com.cwuom.iseen.Pager.CardGeneratorPager.CardGeneratorFragment;
@@ -56,81 +55,99 @@ public class NavigationActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         UtilMethod.setTheme(this);
         UtilMethod.switchLanguage(preferences.getString("language", "zh"), this);
-        super.onCreate(savedInstanceState);
-        uiChangeReceiver = new UiChangeReceiver();
         binding = ActivityNavigationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         Intent intent = new Intent(ACTION_ACTIVITY_CREATED);
         sendBroadcast(intent);
 
-        if (savedInstanceState != null) {
-            removeExistingFragments();
-        }
-        initOrRecoverFragments();
-
+        initOrRecoverFragments(savedInstanceState);
         setupBottomNavigation();
+        configureStatusBarAndNavigationBar(preferences);
+        registerUiChangeReceiver();
+    }
 
-        boolean hide_status_bar_below = preferences.getBoolean("hide_status_bar_below", false);
-        if (hide_status_bar_below && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    private void configureStatusBarAndNavigationBar(SharedPreferences preferences) {
+        if (preferences.getBoolean("hide_status_bar_below", false) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             configureStatusBarBelow();
         }
         transparentNavigationBar(getWindow());
     }
 
-    private void removeExistingFragments() {
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        FragmentTransaction transaction = fragmentManager.beginTransaction();
-
-        // Remove fragments if they exist
-        if (homeFragment != null) {
-            transaction.remove(homeFragment);
-        }
-        if (cardGeneratorFragment != null) {
-            transaction.remove(cardGeneratorFragment);
-        }
-        if (profileFragment != null) {
-            transaction.remove(profileFragment);
-        }
-        transaction.commitNow();
-    }
-
-    private void initOrRecoverFragments() {
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        if (fragmentManager.findFragmentByTag(HomeFragment.class.getSimpleName()) == null &&
-                fragmentManager.findFragmentByTag(CardGeneratorFragment.class.getSimpleName()) == null &&
-                fragmentManager.findFragmentByTag(ProfileFragment.class.getSimpleName()) == null) {
-            initFragments();
-        } else {
-            recoverFragments();
-        }
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ACTION_UI_CHANGE);
+    private void registerUiChangeReceiver() {
+        uiChangeReceiver = new UiChangeReceiver();
+        IntentFilter intentFilter = new IntentFilter(ACTION_UI_CHANGE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(uiChangeReceiver, intentFilter, Context.RECEIVER_EXPORTED);
         }
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        unregisterReceiver(uiChangeReceiver);
+    private void initOrRecoverFragments(Bundle savedInstanceState) {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        if (savedInstanceState == null) {
+            homeFragment = new HomeFragment();
+            cardGeneratorFragment = new CardGeneratorFragment();
+            profileFragment = new ProfileFragment();
+
+            fragmentManager.beginTransaction()
+                    .add(R.id.navFragment, homeFragment, HomeFragment.class.getSimpleName())
+                    .add(R.id.navFragment, cardGeneratorFragment, CardGeneratorFragment.class.getSimpleName())
+                    .hide(cardGeneratorFragment)
+                    .add(R.id.navFragment, profileFragment, ProfileFragment.class.getSimpleName())
+                    .hide(profileFragment)
+                    .commit();
+            currentFragment = homeFragment;
+        } else {
+            recoverFragments(fragmentManager);
+        }
     }
 
+    private void recoverFragments(FragmentManager fragmentManager) {
+        homeFragment = (HomeFragment) fragmentManager.findFragmentByTag(HomeFragment.class.getSimpleName());
+        cardGeneratorFragment = (CardGeneratorFragment) fragmentManager.findFragmentByTag(CardGeneratorFragment.class.getSimpleName());
+        profileFragment = (ProfileFragment) fragmentManager.findFragmentByTag(ProfileFragment.class.getSimpleName());
+
+        currentFragment = fragmentManager.getPrimaryNavigationFragment();
+    }
+
+    private void setupBottomNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.menu_home) {
+                changeFragment(homeFragment);
+                return true;
+            } else if (id == R.id.menu_card_generator) {
+                changeFragment(cardGeneratorFragment);
+                return true;
+            } else if (id == R.id.menu_profile) {
+                changeFragment(profileFragment);
+                return true;
+            } else {
+                return false;
+            }
+        });
+    }
+
+
+    private void changeFragment(Fragment newFragment) {
+        if (newFragment != currentFragment) {
+            getSupportFragmentManager().beginTransaction()
+                    .hide(currentFragment)
+                    .show(newFragment)
+                    .setPrimaryNavigationFragment(newFragment)
+                    .commit();
+            currentFragment = newFragment;
+        }
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void configureStatusBarBelow() {
         Window window = getWindow();
         window.setStatusBarColor(Color.TRANSPARENT);
-
         View decorView = window.getDecorView();
         decorView.setOnApplyWindowInsetsListener((view, windowInsets) -> {
             int insetTop = windowInsets.getSystemWindowInsetTop();
@@ -150,78 +167,18 @@ public class NavigationActivity extends AppCompatActivity {
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         int systemUiVisibility = window.getDecorView().getSystemUiVisibility();
-        systemUiVisibility = systemUiVisibility|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+        systemUiVisibility |= View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
         window.getDecorView().setSystemUiVisibility(systemUiVisibility);
         window.setNavigationBarColor(Color.TRANSPARENT);
-
-        systemUiVisibility = systemUiVisibility & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        systemUiVisibility &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
         window.getDecorView().setSystemUiVisibility(systemUiVisibility);
     }
 
-    private void recoverFragments() {
-        FragmentManager fragmentManager = getSupportFragmentManager();
-
-        homeFragment = (HomeFragment) fragmentManager.findFragmentByTag(HomeFragment.class.getSimpleName());
-        cardGeneratorFragment = (CardGeneratorFragment) fragmentManager.findFragmentByTag(CardGeneratorFragment.class.getSimpleName());
-        profileFragment = (ProfileFragment) fragmentManager.findFragmentByTag(ProfileFragment.class.getSimpleName());
-
-        if (profileFragment != null) {
-            currentFragment = profileFragment;
-        }else if (homeFragment != null) {
-            currentFragment = homeFragment;
-        } else if (cardGeneratorFragment != null) {
-            currentFragment = cardGeneratorFragment;
-        }
-    }
-
-
-    private void initFragments() {
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-
-        homeFragment = new HomeFragment();
-        cardGeneratorFragment = new CardGeneratorFragment();
-        profileFragment = new ProfileFragment();
-
-        fragmentTransaction.add(R.id.navFragment, homeFragment, HomeFragment.class.getSimpleName());
-        fragmentTransaction.add(R.id.navFragment, cardGeneratorFragment, CardGeneratorFragment.class.getSimpleName()).hide(cardGeneratorFragment);
-        fragmentTransaction.add(R.id.navFragment, profileFragment, ProfileFragment.class.getSimpleName()).hide(profileFragment);
-
-        fragmentTransaction.commit();
-
-        currentFragment = homeFragment;
-    }
-    private void setupBottomNavigation() {
-        binding.bottomNavigation.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.menu_home) {
-                changeFragment(currentFragment, homeFragment);
-            } else if (id == R.id.menu_card_generator) {
-                changeFragment(currentFragment, cardGeneratorFragment);
-            } else if (id == R.id.menu_profile) {
-                changeFragment(currentFragment, profileFragment);
-            }
-            return true;
-        });
-    }
-
-    private void changeFragment(Fragment from, Fragment to) {
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-
-        fragmentTransaction.setCustomAnimations(
-                R.anim.fragment_enter,
-                R.anim.fragment_exit
-        );
-
-        if (to != currentFragment) {
-            fragmentTransaction.show(to);
-            if (from != null && from.isAdded()) {
-                fragmentTransaction.hide(from);
-            }
-
-            fragmentTransaction.commit();
-            currentFragment = to;
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (uiChangeReceiver != null) {
+            unregisterReceiver(uiChangeReceiver);
         }
     }
 
@@ -232,9 +189,7 @@ public class NavigationActivity extends AppCompatActivity {
         }
     }
 
-
     public BottomNavigationView getBottomNavigationView() {
         return binding.bottomNavigation;
     }
-
 }

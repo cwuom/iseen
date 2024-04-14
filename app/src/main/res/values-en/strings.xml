@@ -22,7 +22,7 @@
     <string name="app_subtitle">Read Detection for QQ</string>
     <string name="php_filename_disguised_as_image">Detection Address</string>
     <string name="query_data_directory">Listening Data Storage Directory (Leave Root Directory Empty)</string>
-    <string name="dev_description"><b>Dev: bilibili@im-cwuom</b>\nProgram Build Date: 2024.4.7</string>
+    <string name="dev_description"><b>Dev: bilibili@im-cwuom</b>\nProgram Build Date: 2024.4.14</string>
     <string name="cards_history">Card History</string>
     <string name="manage_cards_history">History Manager</string>
     <string name="item_card_title">Listening Information</string>

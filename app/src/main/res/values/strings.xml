@@ -21,7 +21,7 @@
     <string name="app_subtitle">为你的QQ添加已读检测</string>
     <string name="php_filename_disguised_as_image">探测地址</string>
     <string name="query_data_directory">监听数据存放目录(根目录留空)</string>
-    <string name="dev_description"><b>Dev: bilibili@im-cwuom</b>\n\nTelegram Group: <b><u>@cwuoms_group</u></b>\nQQ Group: <b><u>923071208</u></b>\n\n程序构建日期: 2024.4.6\n<i>(单击查看详情)</i></string>
+    <string name="dev_description"><b>Dev: bilibili@im-cwuom</b>\n\nTelegram Group: <b><u>@cwuoms_group</u></b>\nQQ Group: <b><u>923071208</u></b>\n\n程序构建日期: 2024.4.14\n<i>(单击查看详情)</i></string>
     <string name="cards_history">卡片历史</string>
     <string name="manage_cards_history">管理您之前生成过的卡片</string>
     <string name="item_card_title">监听信息</string>

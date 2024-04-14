@@ -936,7 +936,6 @@ public class HomeFragment extends Fragment {
         binding.subtitle.setText(subtitle);
         binding.yx.setText(yx);
         binding.id.setText(id);
-        binding.note.setText(note);
         binding.hidePath.setText(hidePath);
         binding.switchFollowId.setChecked(switch_followID);
         binding.switchHidePhp.setChecked(switch_hidePhp);
@@ -964,7 +963,6 @@ public class HomeFragment extends Fragment {
         custom_image_url = sharedPreferences.getString("custom_image","");
         id = sharedPreferences.getString("id","");
         php_filename = sharedPreferences.getString("php_filename","kp.php");
-        note = sharedPreferences.getString("note","");
         hidePath =  sharedPreferences.getString("hidePath","");
         switch_followID = sharedPreferences.getBoolean("switch_followID",false);
         switch_hidePhp = sharedPreferences.getBoolean("switch_hidePhp",false);

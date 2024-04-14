@@ -5,7 +5,6 @@ import static com.cwuom.iseen.Util.UtilMethod.ShowLoadingSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.ShowSnackbar;
 import static com.cwuom.iseen.Util.UtilMethod.copyToClipboard;
 import static com.cwuom.iseen.Util.UtilMethod.parseURLComponents;
-import static com.cwuom.iseen.Util.UtilMethod.showDialog;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -335,7 +334,6 @@ public class CardGeneratorFragment extends Fragment {
                     Toast.makeText(requireActivity(), "怎么能没有图片呀.. 已经填充为默认啦！", Toast.LENGTH_LONG).show();
                 } else{
                     if (Objects.equals(parseURLComponents(preview)[0], "tianquan.gtimg.cn")){
-                        showDialog("天权图标", parseURLComponents(tagIcon)[0], requireActivity());
                         tagIcon = "https://api.lyhc.top/bot/a.jpg";
                         binding.cardPreview.setText(tagIcon);
                         Toast.makeText(requireActivity(), "这个预览图的域名不受支持呢.. 已经为你填充默认预览图", Toast.LENGTH_LONG).show();
