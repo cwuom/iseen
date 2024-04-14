@@ -205,7 +205,12 @@ public class ProfileFragment extends Fragment {
             binding.tvSign.setText(getString(R.string.info, userSign));
             binding.tvBirthday.setText(getString(R.string.birthday, userBirthday));
             binding.tvCoins.setText(getString(R.string.coins, ark_coins));
-            updatePermission(Integer.parseInt(ark_coins));
+            try {
+                updatePermission(Integer.parseInt(ark_coins));
+            } catch (NumberFormatException e) {
+                binding.tvPermission.setText(getString(R.string.permission_info, "普通用户"));
+            }
+
 
             if (!profile_img_load_flag) {
                 if (isAdded()) {
