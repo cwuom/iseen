@@ -72,7 +72,7 @@ public class ArkAPIReq {
         }
     }
 
-    public static void getArkListenerReturn(String url, Context context, boolean permission, ArkApiCallback callback) {
+    public static void retrieveArkListenerData(String url, Context context, boolean permission, ArkApiCallback callback) {
         InitUserDataBase initUserDataBase = UtilMethod.getInstance_user(context.getApplicationContext());
         UserDao userDao = initUserDataBase.userDao();
 

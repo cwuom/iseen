@@ -769,7 +769,7 @@ public class HomeFragment extends Fragment {
     }
 
     void startListener(EntityCard card, String[] temp){
-        ArkAPIReq.getArkListenerReturn(
+        ArkAPIReq.retrieveArkListenerData(
                 card.getCardListenerUrl(),
                 getApplicationContext(),
                 true,

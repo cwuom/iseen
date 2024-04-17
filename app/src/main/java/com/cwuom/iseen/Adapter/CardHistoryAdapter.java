@@ -183,7 +183,7 @@ public class CardHistoryAdapter extends RecyclerView.Adapter<CardHistoryAdapter.
     private void refreshCard() {
         EntityCard entityCard = cardDao.getCardByID(list.get(refreshPos).getHistoryCardId());
 
-        ArkAPIReq.getArkListenerReturn(
+        ArkAPIReq.retrieveArkListenerData(
                 entityCard.getCardListenerUrl(),
                 context.getApplicationContext(),
                 true,

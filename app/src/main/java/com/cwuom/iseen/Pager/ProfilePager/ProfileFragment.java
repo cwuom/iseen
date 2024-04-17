@@ -153,8 +153,13 @@ public class ProfileFragment extends Fragment {
                 userFollows = jsonObject_userinfo.optInt("friend");
                 ark_coins = Objects.requireNonNull(ArkAPIReq.getArkCoinsByMid(userUID, getActivity()));
                 userDao.deleteLoginUser();
-
                 userDao.insertUser(new EntityUser(userUID, userName, userImageUrl, userRegTime, userSign, userCoins, userBirthday, ark_coins, userFollows, userCookies, true));
+                try {
+                    updatePermission(Integer.parseInt(ark_coins));
+                } catch (NumberFormatException e) {
+                    binding.tvPermission.setText(getString(R.string.permission_info, "普通用户"));
+                }
+                
                 refreshlayout.finishRefresh(true);
                 profile_img_load_flag = false;
                 handler.sendEmptyMessage(HANDLER_MESSAGE_UPDATE_USERINFO);

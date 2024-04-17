@@ -96,10 +96,10 @@ public class NavigationActivity extends AppCompatActivity {
 
             fragmentManager.beginTransaction()
                     .add(R.id.navFragment, homeFragment, HomeFragment.class.getSimpleName())
-                    .add(R.id.navFragment, cardGeneratorFragment, CardGeneratorFragment.class.getSimpleName())
                     .hide(cardGeneratorFragment)
-                    .add(R.id.navFragment, profileFragment, ProfileFragment.class.getSimpleName())
+                    .add(R.id.navFragment, cardGeneratorFragment, CardGeneratorFragment.class.getSimpleName())
                     .hide(profileFragment)
+                    .add(R.id.navFragment, profileFragment, ProfileFragment.class.getSimpleName())
                     .commit();
             currentFragment = homeFragment;
         } else {
@@ -112,8 +112,14 @@ public class NavigationActivity extends AppCompatActivity {
         cardGeneratorFragment = (CardGeneratorFragment) fragmentManager.findFragmentByTag(CardGeneratorFragment.class.getSimpleName());
         profileFragment = (ProfileFragment) fragmentManager.findFragmentByTag(ProfileFragment.class.getSimpleName());
 
-        currentFragment = fragmentManager.getPrimaryNavigationFragment();
+        if (fragmentManager.getPrimaryNavigationFragment() != null) {
+            currentFragment = fragmentManager.getPrimaryNavigationFragment();
+        } else {
+            currentFragment = homeFragment;
+            fragmentManager.beginTransaction().show(currentFragment).commit();
+        }
     }
+
 
     private void setupBottomNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener(item -> {
